@@ -32,6 +32,7 @@ spec/
 - [x] Shared `core`: network config, keypair loaders, send helper, receipt codec.
 - [ ] `core`: register + enable merge, deposit/transfer/withdraw helpers.
 - [x] Check: transaction viewing key receipts work end to end on localnet (`receipt:e2e`, [findings](spikes/m0-sdk-findings.md)).
+- [x] Check: encrypted transfer memos via `signTransferWithMemos` (`memo:e2e`, [findings](spikes/m0-sdk-findings.md)).
 - [x] Check: payroll batching via `createMultiTransfer`, max 15 payees/tx ([findings](spikes/m0-sdk-findings.md)).
 - [ ] CI: typecheck + unit tests; localnet integration tests.
 
