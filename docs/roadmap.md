@@ -31,12 +31,12 @@ spec/
 - [x] Run localnet + `pnpm --filter @ringstack/core smoke` end to end (deposit → confidential transfer → decrypt passes on v0.6.0-alpha localnet).
 - [x] Shared `core`: network config, keypair loaders, send helper, receipt codec.
 - [ ] `core`: register + enable merge, deposit/transfer/withdraw helpers.
-- [x] Check: transaction viewing key API exists ([findings](spikes/m0-sdk-findings.md)). Localnet decrypt still to do.
+- [x] Check: transaction viewing key receipts work end to end on localnet (`receipt:e2e`, [findings](spikes/m0-sdk-findings.md)).
 - [x] Check: payroll batching via `createMultiTransfer`, max 15 payees/tx ([findings](spikes/m0-sdk-findings.md)).
 - [ ] CI: typecheck + unit tests; localnet integration tests.
 
 ## Milestone 1: Receipts + ringd MVP
-- [ ] Receipt format spec + encode/decode/verify in `core`.
+- [x] Receipt format spec + encode/decode/issue/open in `core`.
 - [ ] Static verifier app.
 - [ ] ringd: watch → decrypt → SQLite → print/log events.
 - [ ] ringd: HMAC webhooks with retry + idempotency.
