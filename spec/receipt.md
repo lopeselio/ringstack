@@ -53,19 +53,19 @@ Share as `https://<verifier>/r#ringrcpt1:...`. The **fragment** keeps the key ou
    - Decode the output data frame. Skip slots that are not `encrypted` with scheme `confidential` or `ringConfidential`.
    - The body is `recipientViewingPk (33 bytes) || ciphertext`. The recipient key is embedded, so **no registry lookup is needed to decrypt**.
    - `plaintext = decodeConfidential(txKey.decryptSlotEphemeral(recipientViewingPk, ciphertext, salt, i))`. Padding slots fail to decrypt and are skipped.
-   - The plaintext gives the asset id, amount, blinding and data.
+   - The plaintext gives the asset id, amount, blinding and data. `data.memo()` is the output's memo, if any.
 5. **Commitment check** (optional per output). If the verifier knows the full shielded address of the slot's recipient (signing key, nullifier key, viewing key), it rebuilds the UTXO and requires `utxo.hash(nullifierPk, treeId) == outputContext.hash`. Results:
    - `verified`: the amount and asset are bound to the onchain commitment.
    - `mismatch`: the sender encrypted something other than what was committed. Reject.
    - `unchecked`: the recipient's address is unknown. The plaintext is still authentic sender data (the ciphertext is bound by `external_data_hash`), but not proven to match the commitment.
-6. Display each output: recipient, asset, amount, check result. An output whose recipient key is the sender's own is change.
+6. Display each output: recipient, asset, amount, memo, check result. An output whose recipient key is the sender's own is change. An all-zero memo (the padding `signTransferWithMemos` gives outputs without one) is shown as no memo.
 
 For RingPay the verifier is typically the merchant, or anyone holding the payment request, so the merchant's address is known and the payment output is `verified`.
 
 ## Trust notes
 
 - **Amount, asset, and recipient** are bound by the output commitment when the commitment check runs (step 5).
-- **Memo** is *not* in the commitment, but its ciphertext is covered by `external_data_hash`, which the proof covers and the program recomputes. Decrypting the onchain ciphertext is therefore authentic.
+- **Memo** rides inside each output's confidential plaintext (a `Data` record). It is *not* in the commitment, so a `verified` result does not cover it, but its ciphertext is covered by `external_data_hash`, which the proof covers and the program recomputes. The memo is therefore authentic sender data.
 - The key holder can decrypt the transaction forever. A receipt is a permanent disclosure of that one transaction.
 - Only the sender can produce a receipt (it needs the sender's viewing key). Recipients can prove receipt of funds with their own outputs; that is out of scope for v1.
 
@@ -75,5 +75,4 @@ For RingPay the verifier is typically the merchant, or anyone holding the paymen
 
 ## Open items
 
-- Memos: transfer memos (`ProofOutputUtxo.withMemo`) are outside the confidential plaintext; decide how receipts display them.
 - Whether to embed the recipient's full shielded address in the receipt (larger link, but every output becomes `verified` without outside knowledge).
