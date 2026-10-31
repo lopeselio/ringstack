@@ -28,7 +28,7 @@ spec/
 ## Milestone 0: Foundation
 - [x] Pin `zolana` **v0.6.0-alpha** (TS `@heliuslabs/zolana@0.6.0-alpha`, Node 24).
 - [x] Localnet scripts: `scripts/install-zolana.sh` (checksum-verified CLI) + `scripts/localnet.sh`.
-- [ ] Run localnet + `pnpm --filter @ringstack/core smoke` end to end.
+- [x] Run localnet + `pnpm --filter @ringstack/core smoke` end to end (deposit → confidential transfer → decrypt passes on v0.6.0-alpha localnet).
 - [x] Shared `core`: network config, keypair loaders, send helper, receipt codec.
 - [ ] `core`: register + enable merge, deposit/transfer/withdraw helpers.
 - [x] Check: transaction viewing key API exists ([findings](spikes/m0-sdk-findings.md)). Localnet decrypt still to do.
