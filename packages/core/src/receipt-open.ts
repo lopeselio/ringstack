@@ -99,6 +99,11 @@ export interface ReceiptOutput {
   /** Undefined when the asset id is not in the supplied registry. */
   readonly mint?: Address;
   readonly amount: bigint;
+  /**
+   * Raw memo bytes, if the output carries one (see memo.ts). Not covered by the
+   * commitment, but authentic: its ciphertext is bound by `external_data_hash`.
+   */
+  readonly memo?: Uint8Array;
   readonly commitment: CommitmentCheck;
 }
 
@@ -186,6 +191,7 @@ export function openReceipt(
         commitment = equalBytes(hash, slot.outputContext.hash) ? "verified" : "mismatch";
       }
 
+      const memo = plaintext.data.memo();
       outputs.push({
         slot: position,
         recipientViewingKey,
@@ -193,6 +199,7 @@ export function openReceipt(
         assetId: plaintext.assetId,
         ...(mint === undefined ? {} : { mint }),
         amount: plaintext.amount,
+        ...(memo === undefined ? {} : { memo }),
         commitment,
       });
     });
