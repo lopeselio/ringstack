@@ -9,8 +9,11 @@ import {
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
+  signTransactionWithSigners,
   type Instruction,
   type Signature,
+  type Transaction,
+  type TransactionPartialSigner,
   type TransactionSigner,
 } from "@solana/kit";
 import type { createZolanaClient } from "@heliuslabs/zolana";
@@ -59,4 +62,20 @@ export function sendAndConfirmFactory(
     const slot = await client.confirmTransaction(signature);
     return { signature, slot };
   };
+}
+
+/**
+ * Sign, send, and confirm a transaction the SDK already compiled
+ * (`build*Transaction`). Every required signer must be in `signers`.
+ */
+export async function submitTransaction(
+  client: ZolanaClient,
+  signers: readonly TransactionPartialSigner[],
+  transaction: Transaction,
+): Promise<ConfirmedTransaction> {
+  const signed = await signTransactionWithSigners(signers, transaction);
+  await sendTransactionWithoutConfirmingFactory({ rpc: client.solanaRpc })(signed, { commitment: "confirmed" });
+  const signature = getSignatureFromTransaction(signed);
+  const slot = await client.confirmTransaction(signature);
+  return { signature, slot };
 }
