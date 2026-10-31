@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "tsx scripts/smoke.ts",
-    "receipt:e2e": "tsx scripts/receipt-e2e.ts"
+    "receipt:e2e": "tsx scripts/receipt-e2e.ts",
+    "memo:e2e": "tsx scripts/memo-e2e.ts"
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.6.0-alpha",
