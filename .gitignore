@@ -8,3 +8,7 @@ dist/
 id.json
 .DS_Store
 .zolana/
+
+# Localnet artifacts
+test-ledger/
+.surfpool/
