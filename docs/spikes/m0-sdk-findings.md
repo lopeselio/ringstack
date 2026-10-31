@@ -31,13 +31,16 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 - `TransferDestination = Address | ShieldedAddress`: plain addresses are resolved via the registry.
 - `createSplit({ wallet, payer, asset, parts })` pre-splits treasury UTXOs so batches can run concurrently.
 
-## Memos: ⚠️ low-level only
+## Memos: ✅ works via prepare/finalize (verified on localnet)
 
-- High-level `createTransfer` / `createMultiTransfer` take **no memo**.
-- `deposit` accepts `memo`. For transfers, memos go through `ProofOutputUtxo.withMemo(bytes)` (lower-level `ConfidentialTransfer` path).
-- Memos are **not** in the UTXO commitment, but their ciphertext is bound by `external_data_hash`.
+- High-level `createTransfer` / `createMultiTransfer` and `ConfidentialTransfer#send` take **no memo**.
+- `deposit` accepts `memo`. For transfers, memos go through `ProofOutputUtxo.withMemo(bytes)`.
+- A memo is a `Data` record (`kind: "memo"`) inside the output's **confidential plaintext**, so only the owner and transaction-key holders read it. It is **not** in the UTXO commitment; its ciphertext is bound by `external_data_hash`.
+- Recipe (`core/src/memo.ts` `signTransferWithMemos`): `transfer.prepare()` → map `prepared.outputs` to `output.withMemo(m)` → `encodeConfidentialSlots(outputs, assets, txKey, salt)` → `prepared.finalize({ txViewingPublicKey, salt, payload })`. `finalize` hashes the original outputs, which is fine because the memo does not change the commitment. All public exports.
+- Recipient: `decryptToBalances(...).balance(mint).utxos[i].data.memo()`. Receipt: `openReceipt` returns `memo` per output.
+- **Length leak:** a memo lengthens its slot ciphertext (32-byte memo: 124-byte slot payload). Mitigation in core: fixed-width memos (`MEMO_LENGTH = 32`, zero-padded) and every real output, change included, gets one, so real slots match. Random padding slots are still sized for an empty plaintext, so in shapes with padding the padded slots stay distinguishable. Ask upstream for a padded dummy length or a memo-aware `dummyCiphertextLength`.
 - Alternative: `withUtxoData(data, dataHash)` is committed, but SPP does not check `dataHash`, so readers must recompute it.
-- **Impact:** RingPay order IDs and payroll memos need the lower-level builder. Prototype in M1.
+- Localnet: `pnpm --filter @ringstack/core memo:e2e` (recipient reads `order:…`, receipt shows it next to a `verified` amount, both slots 124 bytes).
 
 ## Localnet
 
