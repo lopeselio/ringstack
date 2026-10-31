@@ -18,7 +18,10 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 - Export/import: `secretBytes()` / `ViewingKey.fromBytes()`.
 - Decrypt one slot: `decryptSlotEphemeral(recipientViewingPk, ciphertext, salt, slotIndex)`, or `decryptConfidentialAsSender(txKey, body, salt, slotIndex)`.
 - Spec drafted: [spec/receipt.md](../../spec/receipt.md). Codec implemented and tested.
-- Remaining: get `firstNullifier` after sending and exercise the decrypt path on localnet.
+- **Verified on localnet (2026-11-01)** with `pnpm --filter @ringstack/core receipt:e2e`: the sender issues a 152-character receipt, and a verifier decrypts the payment and change outputs and recomputes both commitments (`verified`). A third party can't issue a receipt, a tampered key is rejected, and the receipt doesn't open a different transaction.
+- `firstNullifier` = `tx.nullifiers[0]` from the indexer, so a receipt can be issued later from the signature alone.
+- Each confidential slot body embeds the recipient's viewing key (`pk(33) || ciphertext`), so verifiers need no registry lookup to decrypt.
+- The SDK's sender-side helpers (`decryptConfidentialAsSender`, `confidentialUtxo`) are not exported, so `receipt-open.ts` rebuilds them from public exports (`decodeOutputData`, `decodeConfidential`, `ViewingKey.decryptSlotEphemeral`, `Utxo`).
 
 ## Check 2: payroll batching: ✅ supported (high-level)
 
