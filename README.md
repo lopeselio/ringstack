@@ -26,9 +26,24 @@ Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 | 9 | [Hidden-balance game economies](docs/ideas/09-game-economies.md) |
 | 10 | [Custom Ring templates & auditor console](docs/ideas/10-custom-ring-console.md) |
 
+## Getting started
+
+```bash
+nvm use                      # Node 24
+pnpm install
+pnpm typecheck && pnpm test
+
+# Local zolana stack (validator, Photon indexer, prover)
+./scripts/install-zolana.sh  # downloads + sha256-verifies the v0.6.0-alpha CLI
+./scripts/localnet.sh        # zolana dev start (keep running)
+pnpm --filter @ringstack/core smoke
+```
+
 ## Background
 
 - [Platform notes](docs/platform-notes.md) — what Helius Privacy provides, its primitives, constraints, and version pinning.
+- [Milestone 0 SDK findings](docs/spikes/m0-sdk-findings.md) — receipts, batching, memos, versions.
+- [Receipt spec](spec/receipt.md)
 
 ## License
 
