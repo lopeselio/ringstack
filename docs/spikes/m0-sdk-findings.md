@@ -42,6 +42,14 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 - Alternative: `withUtxoData(data, dataHash)` is committed, but SPP does not check `dataHash`, so readers must recompute it.
 - Localnet: `pnpm --filter @ringstack/core memo:e2e` (recipient reads `order:…`, receipt shows it next to a `verified` amount, both slots 124 bytes).
 
+## Wallet helpers: ✅ verified on localnet
+
+- The SDK's `build*Transaction` functions (`Registration`, `SetMergeEncryption`, `Deposit`, `Transfer`, `Withdrawal`, `Merge`) return compiled kit transactions. Sign with `signTransactionWithSigners`, send, `client.confirmTransaction` for the slot, then `syncWallet({ requireSlot })`.
+- `core/src/session.ts` `RingSession` wraps that loop per identity; memo transfers go through `signTransferWithMemos` with largest-first input selection from `wallet.utxos()` (capped at 8 inputs).
+- Registration is idempotent: `buildRegistrationTransaction` returns `undefined` when the record already holds the same keys.
+- **Merging needs the opt-in even for your own UTXOs**: `buildMergeTransaction` rejects unless the owner's registry record has `mergeEncryption = PoseidonCtrV1` (`buildSetMergeEncryptionTransaction`). New records start `Disabled`. With it enabled, anyone may merge for the owner (that is what ringd auto-merge will use).
+- Localnet: `pnpm --filter @ringstack/core session:e2e` (register ×2, deposit 20M + 30M, enable merge, merge to 1 UTXO, transfer 10M + 5M with memo by Solana address, withdraw 4M to a fresh public address).
+
 ## Localnet
 
 - `zolana dev start` downloads programs, the account snapshot, the prover, and Photon from the pinned release, sha256-verified against a lockfile embedded in the CLI, and caches them in `~/.config/zolana/cache/<tag>/`.
