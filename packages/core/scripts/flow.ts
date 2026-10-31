@@ -9,12 +9,19 @@ import { AssetRegistry, ConfidentialTransfer, ProofInputUtxo, decryptToBalances 
 import { lamports } from "@solana/kit";
 
 import { clientConfigFromEnv } from "../src/config.ts";
+import { signTransferWithMemos } from "../src/memo.ts";
 import { sendAndConfirmFactory, type ConfirmedTransaction } from "../src/send.ts";
 
 export const DEPOSIT = 10_000_000n;
 export const TRANSFER = 3_000_000n;
 
-export async function depositAndTransfer(log: (msg: string) => void = console.log) {
+export interface FlowOptions {
+  readonly log?: (msg: string) => void;
+  /** Encoded memo attached to the recipient's output (see memo.ts). */
+  readonly memo?: Uint8Array;
+}
+
+export async function depositAndTransfer({ log = console.log, memo }: FlowOptions = {}) {
   await initializePoseidon();
   const client = await createZolanaClient(clientConfigFromEnv());
 
@@ -65,7 +72,11 @@ export async function depositAndTransfer(log: (msg: string) => void = console.lo
     signer.address,
   );
   transfer.send(recipient.shieldedAddress(), SOL_MINT, TRANSFER);
-  const data = await client.proveTransact(transfer.sign(sender, assets), LocalKeys.fromKeypair(sender, client.proofService));
+  const inputs =
+    memo === undefined
+      ? transfer.sign(sender, assets)
+      : signTransferWithMemos(transfer, sender, assets, [{ recipient: recipient.shieldedAddress(), memo }]);
+  const data = await client.proveTransact(inputs, LocalKeys.fromKeypair(sender, client.proofService));
   const transferTx = await send([
     await transactInstruction({
       payer: signer,
