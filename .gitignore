@@ -12,3 +12,4 @@ id.json
 # Localnet artifacts
 test-ledger/
 .surfpool/
+.claude/settings.local.json
