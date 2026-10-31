@@ -30,7 +30,7 @@ spec/
 - [x] Localnet scripts: `scripts/install-zolana.sh` (checksum-verified CLI) + `scripts/localnet.sh`.
 - [x] Run localnet + `pnpm --filter @ringstack/core smoke` end to end (deposit → confidential transfer → decrypt passes on v0.6.0-alpha localnet).
 - [x] Shared `core`: network config, keypair loaders, send helper, receipt codec.
-- [ ] `core`: register + enable merge, deposit/transfer/withdraw helpers.
+- [x] `core`: register + enable merge, deposit/transfer/withdraw/merge helpers (`RingSession`, `session:e2e`).
 - [x] Check: transaction viewing key receipts work end to end on localnet (`receipt:e2e`, [findings](spikes/m0-sdk-findings.md)).
 - [x] Check: encrypted transfer memos via `signTransferWithMemos` (`memo:e2e`, [findings](spikes/m0-sdk-findings.md)).
 - [x] Check: payroll batching via `createMultiTransfer`, max 15 payees/tx ([findings](spikes/m0-sdk-findings.md)).
