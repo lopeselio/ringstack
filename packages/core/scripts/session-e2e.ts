@@ -80,4 +80,25 @@ check(bob.balance() === 0n, `bob balance after spending memo funds ${bob.balance
 check(alice.balance() === 46_000_000n, `alice balance ${alice.balance()}`);
 console.log("bob spent funds including a memo payment");
 
-console.log("ok: register, setMerge, deposit, merge, transfer (+memo), withdraw, spend memo funds");
+// Memo funds through merge and withdrawal (both skip memo UTXOs in the SDK).
+await alice.transfer(bob.owner, 3_000_000n, { memo: encodeMemo("order:a") });
+await alice.transfer(bob.owner, 4_000_000n, { memo: encodeMemo("order:b") });
+await bob.sync();
+check(bob.wallet.balance(SOL_MINT).utxos.length === 2, "bob should hold 2 memo utxos");
+await bob.setMerge(true);
+await bob.merge();
+const merged = bob.wallet.balance(SOL_MINT);
+check(merged.amount === 7_000_000n && merged.utxos.length === 1, `merge of memo utxos: ${merged.utxos.length} / ${merged.amount}`);
+check(merged.utxos[0]!.data.isEmpty(), "merged output should be plain");
+console.log("merged 2 memo payments into 1 plain utxo");
+
+await alice.transfer(bob.owner, 2_000_000n, { memo: encodeMemo("order:c") });
+await bob.sync();
+const cashOut2 = (await generateKeyPairSigner()).address;
+await bob.withdraw(cashOut2, 5_000_000n);
+const { value: public2 } = await client.solanaRpc.getBalance(cashOut2).send();
+check(public2 === 5_000_000n, `public balance after memo withdrawal ${public2}`);
+check(bob.balance() === 4_000_000n, `bob balance after memo withdrawal ${bob.balance()}`);
+console.log(`withdrew 5M (incl. a memo payment) to ${cashOut2}`);
+
+console.log("ok: register, setMerge, deposit, merge, transfer (+memo), withdraw, spend/merge/withdraw memo funds");
