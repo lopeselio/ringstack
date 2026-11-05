@@ -5,6 +5,8 @@
 # ~/.config/zolana/cache/<tag>/.
 set -euo pipefail
 
+# NOTE: v0.6.0-alpha is the last release with CLI binaries, and it does not
+# serve SDK 0.8 (see docs/devnet.md).
 ZOLANA_TAG="${ZOLANA_TAG:-v0.6.0-alpha}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN_DIR="$ROOT/.zolana/bin"
