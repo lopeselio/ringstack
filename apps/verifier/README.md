@@ -1,5 +1,7 @@
 # Receipt verifier
 
+Live at **https://lopeselio.github.io/ringstack/verify/**, deployed with the docs site by `.github/workflows/docs.yml`.
+
 A static page that checks a RingPay receipt (`ringrcpt1:…`, see [spec/receipt.md](../../spec/receipt.md)) or a payee's payment proof (`ringproof1:…`, see [spec/payment-proof.md](../../spec/payment-proof.md)). A proof shows the one output it opens, its memo, and whether the payee's registry record carries the proof's keys.
 
 1. Decodes the receipt in the browser.
