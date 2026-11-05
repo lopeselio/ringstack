@@ -1,0 +1,19 @@
+{
+  "name": "@ringstack/paywall-demo",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/main.ts",
+    "e2e": "tsx --env-file-if-exists=../../.env scripts/e2e.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@ringstack/core": "workspace:*",
+    "@ringstack/paywall": "workspace:*",
+    "@solana/kit": "^8.6.0",
+    "fastify": "5.12.8"
+  }
+}
