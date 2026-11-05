@@ -38,3 +38,5 @@ apps/docs/src/content/docs/background/
 apps/docs/dist/
 apps/docs/.astro/
 apps/paywall-demo/dist/
+leakscan-events.json
+leakscan-stats.json
