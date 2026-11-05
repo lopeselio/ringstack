@@ -26,3 +26,6 @@ next-env.d.ts
 *.tsbuildinfo
 # Written by next dev (agent instructions); not part of this repo
 apps/checkout-demo/AGENTS.md
+
+# Devnet test wallets (funder keypair)
+.devnet/
