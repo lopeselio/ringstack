@@ -43,11 +43,20 @@ pnpm --filter @ringstack/ringd e2e     # events, signed webhooks, auto-merge
 pnpm --filter @ringstack/payroll e2e   # batches, resume, audit bundle, per-payee proof
 ```
 
-See [docs/devnet.md](docs/devnet.md) for setup, results, the trust model and **privacy limits**. There is no local stack for zolana 0.8 yet: Helius publishes no 0.8 binaries, and the `scripts/` local network installs v0.6.0-alpha, which the 0.8 SDK refuses (details in the same doc).
+See [docs/devnet.md](docs/devnet.md) for setup, results and the trust model, and [docs/privacy.md](docs/privacy.md) for **privacy limits**. There is no local stack for zolana 0.8 yet: Helius publishes no 0.8 binaries, and the `scripts/` local network installs v0.6.0-alpha, which the 0.8 SDK refuses (details in the same doc).
+
+## Documentation site
+
+```bash
+pnpm --filter @ringstack/docs dev      # http://localhost:4321
+```
+
+[apps/docs](apps/docs) builds a searchable site from the docs below and the app READMEs.
 
 ## Background
 
-- [Devnet: setup, results, privacy limits](docs/devnet.md)
+- [Devnet: setup and results](docs/devnet.md)
+- [Privacy limits](docs/privacy.md)
 - [Platform notes](docs/platform-notes.md) — what Helius Privacy provides, its primitives, constraints, and version pinning.
 - [Milestone 0 SDK findings](docs/spikes/m0-sdk-findings.md) — receipts, batching, memos, versions.
 - [Receipt spec](spec/receipt.md)
