@@ -26,6 +26,21 @@ export interface ConfirmedTransaction {
   readonly slot: bigint;
 }
 
+/** What is known once a transaction is signed, before it is sent. */
+export interface SignedTransactionInfo {
+  readonly signature: Signature;
+  /** The transaction cannot land after this block height. */
+  readonly lastValidBlockHeight: bigint;
+}
+
+export interface SendHooks {
+  /**
+   * Runs after signing and before sending. Persist the signature here to make
+   * a crash between send and confirm recoverable without double-spending.
+   */
+  readonly beforeSend?: (info: SignedTransactionInfo) => void | Promise<void>;
+}
+
 export interface SendOptions {
   readonly computeUnitLimit?: number;
 }
@@ -38,10 +53,10 @@ export function sendAndConfirmFactory(
   client: ZolanaClient,
   feePayer: TransactionSigner,
   { computeUnitLimit = 450_000 }: SendOptions = {},
-): (instructions: readonly Instruction[]) => Promise<ConfirmedTransaction> {
+): (instructions: readonly Instruction[], hooks?: SendHooks) => Promise<ConfirmedTransaction> {
   const send = sendTransactionWithoutConfirmingFactory({ rpc: client.solanaRpc });
 
-  return async (instructions) => {
+  return async (instructions, hooks = {}) => {
     const { value: lifetime } = await client.solanaRpc.getLatestBlockhash().send();
     const signed = await signTransactionMessageWithSigners(
       pipe(
@@ -57,8 +72,9 @@ export function sendAndConfirmFactory(
       ),
     );
     assertIsTransactionWithBlockhashLifetime(signed);
-    await send(signed, { commitment: "confirmed" });
     const signature = getSignatureFromTransaction(signed);
+    await hooks.beforeSend?.({ signature, lastValidBlockHeight: lifetime.lastValidBlockHeight });
+    await send(signed, { commitment: "confirmed" });
     const slot = await client.confirmTransaction(signature);
     return { signature, slot };
   };
