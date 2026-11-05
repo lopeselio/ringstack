@@ -1,7 +1,13 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 
+// Served by GitHub Pages at https://lopeselio.github.io/ringstack/.
+const site = "https://lopeselio.github.io";
+const base = "/ringstack";
+
 export default defineConfig({
+  site,
+  base,
   integrations: [
     starlight({
       title: "ringstack",
