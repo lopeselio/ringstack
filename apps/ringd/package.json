@@ -1,0 +1,21 @@
+{
+  "name": "@ringstack/ringd",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ringd": "./src/cli.ts"
+  },
+  "scripts": {
+    "ringd": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "tsx scripts/e2e.ts"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.6.0-alpha",
+    "@ringstack/core": "workspace:*",
+    "@solana/kit": "^8.6.0",
+    "smol-toml": "^1.9.1"
+  }
+}
