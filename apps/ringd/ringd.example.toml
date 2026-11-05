@@ -1,0 +1,14 @@
+# ringd configuration. Paths are relative to this file.
+network = "localnet"          # "localnet" or "devnet"
+database = "./ringd.db"
+poll_interval_secs = 5
+# The Helius API key (devnet) is read from RINGD_API_KEY or API_KEY, never from this file.
+
+# [endpoints]                 # optional per-service overrides
+# rpc_url = "https://…"
+# indexer_url = "https://…"   # e.g. a self-hosted Photon indexer
+# prover_url = "https://…"
+
+[[wallet]]
+name = "shop"
+key_file = "./shop.ringd-key.json"   # from `ringd keys export`
