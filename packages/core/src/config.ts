@@ -1,39 +1,27 @@
-import { readFileSync } from "node:fs";
-
 import type { ZolanaClientConfig } from "@heliuslabs/zolana";
-import { teePolicyFromJson } from "@heliuslabs/zolana/client";
+import { SignedTeePolicy } from "@heliuslabs/zolana/client";
 
 export type Network = "localnet" | "devnet";
 
-/** Service endpoints for one network. */
+/** Service endpoints for one network. Devnet serves the indexer and prover from the RPC host. */
 export interface Endpoints {
   readonly rpcUrl: string;
-  readonly indexerUrl: string;
-  readonly proverUrl: string;
+  readonly indexerUrl?: string;
+  readonly proverUrl?: string;
 }
 
 /** Ports from `zolana dev start`. */
-export const LOCALNET: Endpoints = Object.freeze({
+export const LOCALNET = Object.freeze({
   rpcUrl: "http://127.0.0.1:8899",
   indexerUrl: "http://127.0.0.1:8784",
   proverUrl: "http://127.0.0.1:3001",
-});
+}) satisfies Endpoints;
 
 /**
- * Devnet services as used by helius-labs/zolana-examples for v0.6.0-alpha.
- * Helius plans to serve all three from one RPC URL; until then they are separate.
+ * Devnet (zolana v0.8): one Helius RPC URL. The SDK serves the indexer and the
+ * prover from its `/v1/spr` namespace, with the same API key.
  */
-export const DEVNET: Endpoints = Object.freeze({
-  rpcUrl: "https://devnet.helius-rpc.com",
-  indexerUrl: "https://d34xe1hqb2ibg2.cloudfront.net",
-  proverUrl: "https://dd73hh473h6ha.cloudfront.net",
-});
-
-/** Pinned Nitro enclave measurements for the devnet prover (Devnet-e, v0.6.0-alpha). */
-export function devnetTeePolicy() {
-  const raw = readFileSync(new URL("./devnet-e-tee-policy.json", import.meta.url), "utf8");
-  return teePolicyFromJson(JSON.parse(raw));
-}
+export const DEVNET = Object.freeze({ rpcUrl: "https://devnet.helius-rpc.com" }) satisfies Endpoints;
 
 export interface ConfigInput {
   readonly network: Network;
@@ -43,31 +31,31 @@ export interface ConfigInput {
 
 /** Build a client config for a network preset with optional per-service overrides. */
 export function clientConfig({ network, apiKey, overrides = {} }: ConfigInput): ZolanaClientConfig {
-  const base = network === "devnet" ? DEVNET : LOCALNET;
-  const endpoints = { ...base, ...stripUndefined(overrides) };
+  const set = stripUndefined(overrides);
 
   if (network === "localnet") {
+    const endpoints = { ...LOCALNET, ...set };
     return Object.freeze({
       solanaRpcUrl: endpoints.rpcUrl,
       indexerUrl: endpoints.indexerUrl,
       proverUrl: endpoints.proverUrl,
-      // The pinned release prover predates indexed proofs; the client supplies proof data.
+      // The v0.6.0-alpha release prover predates indexed proofs; the client supplies proof data.
       proofDataSource: "client",
     });
   }
 
-  if (!apiKey && endpoints.rpcUrl === DEVNET.rpcUrl) {
+  const rpcUrl = set.rpcUrl ?? DEVNET.rpcUrl;
+  if (!apiKey && rpcUrl === DEVNET.rpcUrl) {
     throw new Error("devnet requires API_KEY (or a ZOLANA_RPC_URL that embeds one)");
   }
-  const solanaRpcUrl = apiKey ? `${endpoints.rpcUrl}/?api-key=${apiKey}` : endpoints.rpcUrl;
-  const usesPinnedProver = endpoints.proverUrl.replace(/\/$/, "") === DEVNET.proverUrl;
-
   return Object.freeze({
-    solanaRpcUrl,
-    indexerUrl: endpoints.indexerUrl,
-    proverUrl: endpoints.proverUrl,
+    solanaRpcUrl: apiKey ? `${rpcUrl}/?api-key=${apiKey}` : rpcUrl,
+    ...(set.indexerUrl === undefined ? {} : { indexerUrl: set.indexerUrl }),
+    ...(set.proverUrl === undefined ? {} : { proverUrl: set.proverUrl }),
     proofDataSource: "prover",
-    ...(usesPinnedProver ? { proverTee: devnetTeePolicy() } : {}),
+    // Every remote prover call is encrypted to an enclave that attests to the
+    // policy Helius publishes for devnet, signed by keys the SDK pins.
+    proverTee: SignedTeePolicy.forNetwork("devnet"),
   });
 }
 
