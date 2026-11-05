@@ -57,7 +57,7 @@ spec/
 
 ## Backlog builds
 - [x] #3 Private agent payments: HTTP 402 paywall (`@ringstack/paywall`), MCP agent wallet with spend limits, demo API; verified on devnet.
-- [ ] #5 Privacy leak analyzer.
+- [x] #5 Privacy leak analyzer: `@ringstack/leakscan` (scan, aggregate stats, withdrawal advisor) and a daily public report at https://lopeselio.github.io/ringstack/leaks/.
 
 ## Track Z: zk-gadgets (parallel, longer)
 - [ ] Z0: Build and run upstream `escrow-program` locally (Go ≥1.27.1, `cargo build-sbf`).

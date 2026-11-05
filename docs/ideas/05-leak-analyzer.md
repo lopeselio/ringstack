@@ -1,6 +1,8 @@
 # 5. Privacy leak analyzer
 
-**Status:** Backlog · **Type:** Client-only / research tool (no keys required)
+**Status:** Built (devnet): [`@ringstack/leakscan`](../../packages/leakscan), [daily report](https://lopeselio.github.io/ringstack/leaks/) · **Type:** Client-only / research tool (no keys required)
+
+> **As built:** SOL deposits and withdrawals only, read from vault balance changes. Three signals (unique amount, round trip, reused recipient). The report publishes aggregates only, per the ethics note below; the event cache with addresses stays in the private CI cache.
 
 ## Problem
 Deposits and withdrawals are public (address, asset, amount). Users who deposit 1,234.56 USDC and withdraw 1,234.56 USDC an hour later are trivially linkable. In confidential rings, sender/recipient graphs are public too.

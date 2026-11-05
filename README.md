@@ -14,6 +14,7 @@ Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (S
 | 2 | [ringd](apps/ringd) | Self-hosted payment watcher with signed webhooks and auto-merge | Built, devnet |
 | 4 | [Private payroll](apps/payroll) | CSV → batched private payouts, audit bundle, payee proofs | Built, devnet |
 | 3 | [Agent payments](packages/paywall) | HTTP 402 paywall + [MCP agent wallet](apps/agent-mcp) with spend limits | Built, devnet |
+| 5 | [Leak analyzer](packages/leakscan) | Linkability scoring, withdrawal advisor, [daily public report](https://lopeselio.github.io/ringstack/leaks/) | Built, devnet |
 | 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Circuit gadget library + template for SPP ZK programs | Not started |
 
 Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
@@ -22,7 +23,6 @@ Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 
 | # | Idea |
 |---|------|
-| 5 | [Privacy leak analyzer](docs/ideas/05-leak-analyzer.md) |
 | 6 | [Derivation-signature phishing guard](docs/ideas/06-derivation-guard.md) |
 | 8 | [Sealed-bid auctions & milestone escrow](docs/ideas/08-sealed-bid-milestone-escrow.md) |
 | 9 | [Hidden-balance game economies](docs/ideas/09-game-economies.md) |
