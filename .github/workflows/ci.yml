@@ -19,6 +19,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm --filter @ringstack/verifier build
+      - run: pnpm --filter @ringstack/checkout-demo build
 
   localnet:
     runs-on: ubuntu-latest
