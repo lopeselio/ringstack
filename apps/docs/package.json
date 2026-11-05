@@ -11,7 +11,7 @@
     "typecheck": "node scripts/sync.mjs && astro sync && tsc --noEmit"
   },
   "dependencies": {
-    "@astrojs/starlight": "0.42.9",
+    "@astrojs/starlight": "0.42.8",
     "@fontsource/instrument-sans": "^5.3.0",
     "@fontsource/martian-mono": "^5.3.0",
     "astro": "7.4.5",
