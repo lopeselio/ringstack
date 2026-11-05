@@ -1,0 +1,52 @@
+/* ringstack: the ink-and-paper identity shared with the verifier and the shop. */
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/600.css";
+@import "@fontsource/martian-mono/400.css";
+
+:root {
+  --sl-font: "Instrument Sans", system-ui, sans-serif;
+  --sl-font-mono: "Martian Mono", ui-monospace, monospace;
+
+  /* Dark (Starlight's default theme block). */
+  --sl-color-accent-low: #10301f;
+  --sl-color-accent: #3f9e70;
+  --sl-color-accent-high: #c4ecd6;
+  --sl-color-white: #f3f5f6;
+  --sl-color-gray-1: #dfe5e8;
+  --sl-color-gray-2: #b8c2c8;
+  --sl-color-gray-3: #8794a0;
+  --sl-color-gray-4: #56636c;
+  --sl-color-gray-5: #36414a;
+  --sl-color-gray-6: #222b31;
+  --sl-color-black: #161b1f;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #d3ebdd;
+  --sl-color-accent: #1e7048;
+  --sl-color-accent-high: #12432b;
+  --sl-color-white: #1e2b35;
+  --sl-color-gray-1: #26343f;
+  --sl-color-gray-2: #3b4852;
+  --sl-color-gray-3: #56636c;
+  --sl-color-gray-4: #8794a0;
+  --sl-color-gray-5: #c3cbd0;
+  --sl-color-gray-6: #e6eaec;
+  --sl-color-gray-7: #f1f3f4;
+  --sl-color-black: #fbfbf7;
+}
+
+/* Headings lean on weight and tight tracking rather than size jumps. */
+.sl-markdown-content :is(h2, h3) {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.sl-markdown-content code:not(pre code) {
+  font-size: 0.86em;
+}
+
+/* Link prefixes (ringrcpt1:, ringpay:) read as data, so keep them from wrapping mid-token. */
+.sl-markdown-content :not(pre) > code {
+  overflow-wrap: anywhere;
+}
