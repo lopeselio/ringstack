@@ -56,6 +56,13 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 - **Merging needs the opt-in even for your own UTXOs**: `buildMergeTransaction` rejects unless the owner's registry record has `mergeEncryption = PoseidonCtrV1` (`buildSetMergeEncryptionTransaction`). New records start `Disabled`. With it enabled, anyone may merge for the owner (that is what ringd auto-merge will use).
 - Localnet: `pnpm --filter @ringstack/core session:e2e` (register ×2, deposit 20M + 30M, enable merge, merge to 1 UTXO, transfer 10M + 5M with memo by Solana address, withdraw 4M to a fresh public address).
 
+## Merging without the spending key: ✅ verified on localnet
+
+- Answers the ringd idea doc's open question: a merge needs the owner's **nullifier key** (to spend the inputs) and shielded address, plus a prover (`LocalKeys.fromKeys({ address, viewingKeys, nullifierKey })`). The owner's Ed25519 key is not involved, and the only transaction signer is the fee payer given to `client.assembleAuthorizedMergeTransaction({ proved, feePayer, userRecord })`.
+- The owner's registry record must have `mergeEncryption = PoseidonCtrV1`; anyone can then merge for them.
+- `Merge.fromKeypair(keypair, inputs)` reads only `keypair.shieldedAddress()` and `keypair.nullifierKey()` (and destroys the key it gets), so `core/src/merge.ts` `buildMerge` passes a view of `{ address, nullifierKey }` instead of a full keypair. This leans on SDK internals; recheck on upgrades.
+- `ringd e2e`: three memo payments merged into one plain UTXO from the key file and a separate fee payer; the owner's SOL balance was unchanged.
+
 ## Localnet
 
 - `zolana dev start` downloads programs, the account snapshot, the prover, and Photon from the pinned release, sha256-verified against a lockfile embedded in the CLI, and caches them in `~/.config/zolana/cache/<tag>/`.
