@@ -1,0 +1,56 @@
+---
+title: Private payments on Solana, and proof they happened
+description: Open-source tooling on Helius Privacy for payment requests, payment watching, private payroll and verifiable receipts.
+template: splash
+sidebar:
+  label: Home
+hero:
+  tagline: ringstack is open-source tooling on Helius Privacy. Request a payment, watch for it without handing out your keys, pay a team privately, and give anyone a link that proves what was paid.
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: How it fits together
+      link: /overview/
+      variant: minimal
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside type="caution" title="Devnet only">
+  Helius Privacy is in beta and its programs are under audit. Everything here runs on Solana devnet with test SOL.
+</Aside>
+
+## A payment, as three links
+
+A private payment hides its amount and memo onchain. These links are how the people involved share exactly what they need to.
+
+**1. The shop asks to be paid.** A request carries the amount and an order number. The wallet puts the order number in the encrypted memo, never onchain in the clear.
+
+```text wrap
+ringpay:GNhaRndM8JGXUhsfgWXGR7XdcWnioBbuZueyaJ2zsYsD?amount=0.0125&order=1042&label=Corner%20Caf%C3%A9&cluster=devnet
+```
+
+**2. The customer keeps a receipt.** It opens that one transaction, so the shop, an accountant or a dispute resolver can check the amount against the chain.
+
+```text wrap
+ringrcpt1:AQCiZaSPDMA5O5BmcOeXkc8SElljb9_xs39R0bheudl26NgAhes63HXT_v9f5A18lQokEad9eW…
+```
+
+**3. A payee proves their own output.** Paid in a batch with others, an employee proves their pay to a landlord without revealing anyone else's.
+
+```text wrap
+ringproof1:AQD4gzzk5kJ1DCpQ2E1SH1R_7JQit20Dgn1PYYWzOdtVRt0I6nKDatsk6-W07NOzGqPoZC10y54q…
+```
+
+Paste either of the last two into the [verifier page](/tools/verifier/) to check it.
+
+## What's here
+
+- [**ringd**](/tools/ringd/): A self-hosted daemon that watches a wallet with read-only keys and sends signed webhooks when payments arrive, memo included. It can also merge small payments without the spending key.
+- [**Private payroll**](/tools/payroll/): A CLI that pays a CSV of people in batches of up to 15, resumes safely after a crash, and produces an audit bundle for the accountant.
+- [**Verifier page**](/tools/verifier/): A static page that checks receipts and payment proofs in the browser, with no keys and no account.
+- [**Checkout demo**](/tools/checkout-demo/): A Next.js shop and NestJS API that take a private payment, hear about it from ringd, and mark the order paid.
+- [**@ringstack/core**](/overview/#packages): The TypeScript library underneath: wallet sessions, memos, payment requests, receipts and proofs.
+
+Before relying on any of it, read the [privacy limits](/guides/privacy/): what stays hidden, and what does not.
