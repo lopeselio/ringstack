@@ -25,9 +25,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { RingSession, clientConfigFromEnv, encodeMemo, loadShieldedKeypair } from "@ringstack/core";
+import { RingSession, clientConfigFromEnv, encodeMemo, fund, loadShieldedKeypair } from "@ringstack/core";
 import { verifyWebhook, type RingdEvent } from "@ringstack/ringd-client";
-import { lamports } from "@solana/kit";
 
 import type { DeliveryConfig, WebhookConfig } from "../src/config.ts";
 import { Daemon, type Logger } from "../src/daemon.ts";
@@ -93,14 +92,14 @@ const client = await createZolanaClient(clientConfig);
 const customer = await RingSession.open(client, ShieldedKeypair.generate());
 const merchant = await RingSession.open(client, ShieldedKeypair.generate());
 for (const s of [customer, merchant]) {
-  await client.confirmTransaction(await client.solanaRpc.requestAirdrop(s.owner, lamports(1_000_000_000n)).send());
+  await fund(client, s.owner, s === customer ? 80_000_000n : 20_000_000n);
   await s.register();
 }
 await customer.deposit(50_000_000n);
 
 // Kiosk: a second merchant that opts in to merges.
 const kiosk = await RingSession.open(client, ShieldedKeypair.generate());
-await client.confirmTransaction(await client.solanaRpc.requestAirdrop(kiosk.owner, lamports(1_000_000_000n)).send());
+await fund(client, kiosk.owner, 20_000_000n);
 await kiosk.register();
 await kiosk.setMerge(true);
 
@@ -123,7 +122,7 @@ const feePayerPath = join(dir, "fee-payer.json");
   writeFileSync(feePayerPath, JSON.stringify([...seed, ...pub]), { mode: 0o600 });
 }
 const feePayerAddress = (await loadShieldedKeypair(feePayerPath)).toSolanaSigner().address;
-await client.confirmTransaction(await client.solanaRpc.requestAirdrop(feePayerAddress, lamports(100_000_000n)).send());
+await fund(client, feePayerAddress, 20_000_000n);
 
 async function startDaemon() {
   const store = new RingdStore(dbPath);

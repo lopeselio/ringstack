@@ -7,9 +7,10 @@
  *   pnpm --filter @ringstack/core session:e2e
  */
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { generateKeyPairSigner, lamports, type Address } from "@solana/kit";
+import { generateKeyPairSigner } from "@solana/kit";
 
 import { clientConfigFromEnv } from "../src/config.ts";
+import { fund } from "../src/fund.ts";
 import { decodeMemo, encodeMemo } from "../src/memo.ts";
 import { RingSession } from "../src/session.ts";
 
@@ -20,15 +21,10 @@ function check(cond: boolean, msg: string): asserts cond {
 await initializePoseidon();
 const client = await createZolanaClient(clientConfigFromEnv());
 
-async function airdrop(to: Address) {
-  const sig = await client.solanaRpc.requestAirdrop(to, lamports(1_000_000_000n)).send();
-  await client.confirmTransaction(sig);
-}
-
 const alice = await RingSession.open(client, ShieldedKeypair.generate());
 const bob = await RingSession.open(client, ShieldedKeypair.generate());
-await airdrop(alice.owner);
-await airdrop(bob.owner);
+await fund(client, alice.owner, 80_000_000n); // deposits 50M + rent and fees
+await fund(client, bob.owner, 20_000_000n);
 console.log(`alice ${alice.owner}\nbob   ${bob.owner}`);
 
 // Registration (idempotent).

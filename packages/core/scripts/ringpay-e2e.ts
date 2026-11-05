@@ -7,9 +7,9 @@
  *   pnpm --filter @ringstack/core ringpay:e2e
  */
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { lamports } from "@solana/kit";
 
-import { clientConfigFromEnv } from "../src/config.ts";
+import { clientConfigFromEnv, networkFromEnv } from "../src/config.ts";
+import { fund } from "../src/fund.ts";
 import { decodeReceipt } from "../src/receipt.ts";
 import { fetchShieldedTransaction, openReceipt } from "../src/receipt-open.ts";
 import { RingPayError, encodePaymentRequest, orderFromMemo } from "../src/ringpay.ts";
@@ -30,13 +30,15 @@ async function expectCode(code: RingPayError["code"], fn: () => Promise<unknown>
   throw new Error(`expected ${code}, but the call succeeded`);
 }
 
+const cluster = networkFromEnv();
+const otherCluster = cluster === "localnet" ? "devnet" : "localnet";
 await initializePoseidon();
 const client = await createZolanaClient(clientConfigFromEnv());
 const customer = await RingSession.open(client, ShieldedKeypair.generate());
 const merchant = await RingSession.open(client, ShieldedKeypair.generate());
 const stranger = ShieldedKeypair.generate().toSolanaSigner().address; // never registers
 for (const s of [customer, merchant]) {
-  await client.confirmTransaction(await client.solanaRpc.requestAirdrop(s.owner, lamports(1_000_000_000n)).send());
+  await fund(client, s.owner, s === customer ? 80_000_000n : 20_000_000n);
 }
 await merchant.register();
 await customer.deposit(50_000_000n);
@@ -48,12 +50,12 @@ const uri = encodePaymentRequest({
   order: "1042",
   label: "Corner Café",
   message: "Flat white",
-  cluster: "localnet",
+  cluster,
 });
 console.log(`request  ${uri}`);
 
 // Payer side.
-const paid = await payRequest(customer, uri, { cluster: "localnet" });
+const paid = await payRequest(customer, uri, { cluster });
 console.log(`paid     ${paid.amount} lamports, tx ${paid.payment.signature.slice(0, 12)}…`);
 console.log(`receipt  ${paid.receiptLink.slice(0, 40)}…`);
 check(paid.amount === 12_500_000n, "amount");
@@ -73,8 +75,8 @@ check(orders.includes("1042"), `merchant orders ${JSON.stringify(orders)}`);
 console.log(`merchant sees order 1042 (balance ${merchant.balance()})`);
 
 // A request without amount: the payer chooses.
-const tip = await payRequest(customer, encodePaymentRequest({ recipient: merchant.owner, label: "Tips", cluster: "localnet" }), {
-  cluster: "localnet",
+const tip = await payRequest(customer, encodePaymentRequest({ recipient: merchant.owner, label: "Tips", cluster }), {
+  cluster,
   amount: 1_000_000n,
 });
 check(tip.amount === 1_000_000n, "tip amount");
@@ -83,15 +85,15 @@ console.log("paid a no-amount request with a chosen amount");
 // Refusals: nothing is sent in any of these.
 const before = customer.balance();
 await expectCode("NOT_REGISTERED", () =>
-  payRequest(customer, encodePaymentRequest({ recipient: stranger, amount: "0.001", cluster: "localnet" }), {
-    cluster: "localnet",
+  payRequest(customer, encodePaymentRequest({ recipient: stranger, amount: "0.001", cluster }), {
+    cluster,
   }),
 );
-await expectCode("WRONG_CLUSTER", () => payRequest(customer, uri.replace("cluster=localnet", "cluster=devnet"), { cluster: "localnet" }));
+await expectCode("WRONG_CLUSTER", () => payRequest(customer, uri.replace(`cluster=${cluster}`, `cluster=${otherCluster}`), { cluster }));
 await expectCode("AMOUNT_REQUIRED", () =>
-  payRequest(customer, encodePaymentRequest({ recipient: merchant.owner, cluster: "localnet" }), { cluster: "localnet" }),
+  payRequest(customer, encodePaymentRequest({ recipient: merchant.owner, cluster }), { cluster }),
 );
-await expectCode("AMOUNT_MISMATCH", () => payRequest(customer, uri, { cluster: "localnet", amount: 1n }));
+await expectCode("AMOUNT_MISMATCH", () => payRequest(customer, uri, { cluster, amount: 1n }));
 check(customer.balance() === before, "a refused request moved funds");
 console.log("refused: unregistered recipient, wrong cluster, missing amount, amount mismatch");
 

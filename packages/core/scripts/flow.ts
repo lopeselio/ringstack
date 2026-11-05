@@ -1,14 +1,14 @@
 /**
- * Shared localnet flow for scripts: airdrop → deposit SOL → confidential transfer.
+ * Shared flow for scripts: fund → deposit SOL → confidential transfer (localnet or devnet).
  * Mirrors helius-labs/zolana-examples deposit_transfer_withdraw.ts.
  */
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
 import { LocalKeys, atSlot } from "@heliuslabs/zolana/client";
 import { DepositAsset, depositInstruction, transactInstruction } from "@heliuslabs/zolana/interface";
 import { AssetRegistry, ConfidentialTransfer, ProofInputUtxo, decryptToBalances } from "@heliuslabs/zolana/transaction";
-import { lamports } from "@solana/kit";
 
 import { clientConfigFromEnv } from "../src/config.ts";
+import { fund } from "../src/fund.ts";
 import { signTransferWithMemos } from "../src/memo.ts";
 import { sendAndConfirmFactory, type ConfirmedTransaction } from "../src/send.ts";
 
@@ -33,8 +33,7 @@ export async function depositAndTransfer({ log = console.log, memo }: FlowOption
   const assets = new AssetRegistry();
 
   log(`sender   ${signer.address}`);
-  const airdropSig = await client.solanaRpc.requestAirdrop(signer.address, lamports(1_000_000_000n)).send();
-  await client.confirmTransaction(airdropSig);
+  await fund(client, signer.address, DEPOSIT + 20_000_000n);
 
   const deposit = await send([
     await depositInstruction({

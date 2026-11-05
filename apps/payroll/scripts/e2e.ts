@@ -25,13 +25,15 @@ import {
   RingSession,
   clientConfigFromEnv,
   decodeMemo,
+  fund,
+  networkFromEnv,
   decodePaymentProof,
   fetchShieldedTransaction,
   provePayment,
   spendableUtxos,
   verifyPaymentProof,
 } from "@ringstack/core";
-import { lamports, type Address } from "@solana/kit";
+import type { Address } from "@solana/kit";
 
 import { AuditError, buildAudit, verifyAuditBundle, writeAuditBundle } from "../src/audit.ts";
 import { checkProof, listPayslips, provePayslip } from "../src/payslip.ts";
@@ -46,16 +48,16 @@ function check(cond: boolean, msg: string): asserts cond {
 
 await initializePoseidon();
 const client = await createZolanaClient(clientConfigFromEnv());
-const airdrop = async (to: Address, amount = 1_000_000_000n) =>
-  client.confirmTransaction(await client.solanaRpc.requestAirdrop(to, lamports(amount)).send());
+const cluster = networkFromEnv();
+const airdrop = (to: Address, amount: bigint) => fund(client, to, amount);
 
-// Treasury: 1 SOL private, split into 2 UTXOs for concurrent batches.
+// Treasury: 0.1 SOL private, split into 2 UTXOs for concurrent batches.
 const treasury = await RingSession.open(client, ShieldedKeypair.generate());
-await airdrop(treasury.owner, 3_000_000_000n);
-await treasury.deposit(1_000_000_000n);
+await airdrop(treasury.owner, 150_000_000n);
+await treasury.deposit(100_000_000n);
 await treasury.split(2);
 check(spendableUtxos(treasury.wallet, SOL_MINT).length === 2, "split should leave 2 UTXOs");
-console.log(`treasury ${treasury.owner} (1 SOL in 2 UTXOs)`);
+console.log(`treasury ${treasury.owner} (0.1 SOL in 2 UTXOs)`);
 
 // Payees.
 const payees: RingSession[] = [];
@@ -82,7 +84,7 @@ async function makePlan(text: string): Promise<Plan> {
   const built = await buildPlan({
     rows: parsePayrollCsv(text),
     csvText: text,
-    cluster: "localnet",
+    cluster,
     treasury: treasury.owner,
     mint: SOL_MINT,
     decimals: 9,
@@ -184,7 +186,7 @@ const employee = payees[3]!;
 const b001 = final.batches["b001"]!.signature!;
 const slip = listPayslips(employee).find((p) => p.signature === b001);
 check(slip !== undefined && slip.memo === "Payroll 2026-11", `payslip ${JSON.stringify(slip)}`);
-const proofLink = await provePayslip(employee, b001 as never, "localnet");
+const proofLink = await provePayslip(employee, b001 as never, cluster);
 const shown = await checkProof(client, proofLink);
 check(shown.owner === employee.owner && shown.amount === BigInt(slip.amount) && shown.registered, "proof contents");
 check(decodeMemo(shown.memo) === "Payroll 2026-11", "proof memo");
@@ -203,7 +205,7 @@ const tx = await fetchShieldedTransaction(client, b001 as never);
 const proof = decodePaymentProof(proofLink);
 // Point the employee's secret at a co-worker's output: it opens nothing.
 const coworker = payees[4]!;
-const coworkerSlot = provePayment(coworker.keypair, tx, "localnet").outputSlot;
+const coworkerSlot = provePayment(coworker.keypair, tx, cluster).outputSlot;
 const leaked = expectCode(
   () => verifyPaymentProof({ ...proof, outputSlot: coworkerSlot, recipient: coworker.address }, tx),
   ["DOES_NOT_DECRYPT", "COMMITMENT_MISMATCH"],
@@ -212,7 +214,7 @@ const tampered = expectCode(
   () => verifyPaymentProof({ ...proof, sharedSecret: proof.sharedSecret.map((b, i) => (i === 5 ? b ^ 1 : b)) }, tx),
   ["DOES_NOT_DECRYPT", "COMMITMENT_MISMATCH"],
 );
-const stranger = expectCode(() => provePayment(ShieldedKeypair.generate(), tx, "localnet"), ["NO_SUCH_OUTPUT"]);
+const stranger = expectCode(() => provePayment(ShieldedKeypair.generate(), tx, cluster), ["NO_SUCH_OUTPUT"]);
 console.log(`co-worker's output stays closed (${leaked}); tampered proof fails (${tampered}); non-payee cannot prove (${stranger})`);
 
 console.log("ok: payroll plan, concurrent batches, crash + resume without double payment, expired-attempt retry, audit bundle, per-payee proof");

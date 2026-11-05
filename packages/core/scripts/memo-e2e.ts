@@ -12,6 +12,7 @@ import { atSlot } from "@heliuslabs/zolana/client";
 import { decryptToBalances } from "@heliuslabs/zolana/transaction";
 
 import { decodeMemo, encodeMemo } from "../src/memo.ts";
+import { networkFromEnv } from "../src/config.ts";
 import { decodeReceipt, encodeReceipt } from "../src/receipt.ts";
 import { fetchShieldedTransaction, issueReceipt, openReceipt } from "../src/receipt-open.ts";
 import { TRANSFER, depositAndTransfer } from "./flow.ts";
@@ -37,7 +38,7 @@ console.log(`recipient memo  ${JSON.stringify(recipientMemo)}`);
 if (recipientMemo !== ORDER) throw new Error("recipient did not read the memo");
 
 // Verifier side: the receipt shows the memo next to the verified amount.
-const receipt = decodeReceipt(encodeReceipt(issueReceipt(sender, tx, "localnet")));
+const receipt = decodeReceipt(encodeReceipt(issueReceipt(sender, tx, networkFromEnv())));
 const opened = openReceipt(receipt, tx, { knownAddresses: [recipient.shieldedAddress(), sender.shieldedAddress()] });
 for (const o of opened.outputs) {
   console.log(`  slot ${o.slot}: ${o.amount}, memo ${JSON.stringify(decodeMemo(o.memo) ?? null)}, commitment ${o.commitment}`);

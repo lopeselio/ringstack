@@ -10,6 +10,7 @@
 import { ShieldedKeypair } from "@heliuslabs/zolana";
 import { SOL_MINT } from "@heliuslabs/zolana/transaction";
 
+import { networkFromEnv } from "../src/config.ts";
 import { decodeReceipt, encodeReceipt } from "../src/receipt.ts";
 import { ReceiptError, fetchShieldedTransaction, issueReceipt, openReceipt } from "../src/receipt-open.ts";
 import { DEPOSIT, TRANSFER, depositAndTransfer } from "./flow.ts";
@@ -28,7 +29,7 @@ const { client, sender, recipient, deposit, transferTx } = await depositAndTrans
 const tx = await fetchShieldedTransaction(client, transferTx.signature);
 
 // Sender issues and shares the receipt.
-const link = encodeReceipt(issueReceipt(sender, tx, "localnet"));
+const link = encodeReceipt(issueReceipt(sender, tx, networkFromEnv()));
 console.log(`receipt  ${link.slice(0, 48)}… (${link.length} chars)`);
 
 // Verifier: decode, fetch, open. Knows the recipient (merchant) and sender addresses.
@@ -58,7 +59,7 @@ const blind = openReceipt(receipt, tx);
 if (!blind.outputs.every((o) => o.commitment === "unchecked")) throw new Error("expected unchecked outputs");
 
 // Negative checks.
-expectReceiptError("KEY_MISMATCH", () => issueReceipt(ShieldedKeypair.generate(), tx, "localnet"));
+expectReceiptError("KEY_MISMATCH", () => issueReceipt(ShieldedKeypair.generate(), tx, networkFromEnv()));
 // Byte 0's low 3 bits are cleared by X25519 clamping, so tamper a significant byte.
 const tampered = { ...receipt, txViewingKey: receipt.txViewingKey.map((b, i) => (i === 10 ? b ^ 0xff : b)) };
 expectReceiptError("KEY_MISMATCH", () => openReceipt(tampered, tx));
