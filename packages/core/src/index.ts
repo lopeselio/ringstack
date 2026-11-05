@@ -5,3 +5,5 @@ export * from "./receipt.ts";
 export * from "./receipt-open.ts";
 export * from "./memo.ts";
 export * from "./session.ts";
+export * from "./ringpay.ts";
+export * from "./ringpay-pay.ts";
