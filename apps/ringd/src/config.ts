@@ -14,6 +14,11 @@
  *   [[wallet]]
  *   name = "shop"
  *   key_file = "./shop.ringd-key.json"
+ *   merge_threshold = 30            # optional: merge once this many spendable UTXOs of an asset pile up
+ *
+ *   [merge]                         # required when any wallet sets merge_threshold
+ *   fee_payer = "./fee-payer.json"  # Solana keypair holding only SOL for fees, NOT the wallet owner's key
+ *   max_inputs = 24                 # UTXOs per merge (2–24)
  *
  *   [[webhook]]
  *   name = "orders"
@@ -39,6 +44,14 @@ import { parse } from "smol-toml";
 export interface WalletConfig {
   readonly name: string;
   readonly keyFile: string;
+  /** Merge once this many spendable UTXOs of one asset accumulate. Off when absent. */
+  readonly mergeThreshold?: number;
+}
+
+export interface MergeConfig {
+  /** Solana keypair file that pays merge fees. */
+  readonly feePayer: string;
+  readonly maxInputs: number;
 }
 
 export interface WebhookConfig {
@@ -76,6 +89,7 @@ export interface RingdConfig {
   readonly wallets: readonly WalletConfig[];
   readonly webhooks: readonly WebhookConfig[];
   readonly delivery: DeliveryConfig;
+  readonly merge?: MergeConfig;
 }
 
 const NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -111,13 +125,21 @@ export function parseConfig(text: string, baseDir: string, env: NodeJS.ProcessEn
     const keyFile = str(w, "key_file", `wallet[${i}]`);
     if (name === undefined || !NAME.test(name)) throw new Error(`wallet[${i}].name must match ${NAME}`);
     if (keyFile === undefined) throw new Error(`wallet[${i}].key_file is required`);
-    return { name, keyFile: resolve(baseDir, keyFile) };
+    const threshold = w["merge_threshold"];
+    if (threshold !== undefined && (typeof threshold !== "number" || !Number.isInteger(threshold) || threshold < 2)) {
+      throw new Error(`wallet[${i}].merge_threshold must be an integer ≥ 2`);
+    }
+    return { name, keyFile: resolve(baseDir, keyFile), ...(threshold === undefined ? {} : { mergeThreshold: threshold }) };
   });
   const names = new Set(wallets.map((w) => w.name));
   if (names.size !== wallets.length) throw new Error("wallet names must be unique");
 
   const webhooks = parseWebhooks(doc["webhook"], names, env);
   const delivery = parseDelivery((doc["delivery"] ?? {}) as Record<string, unknown>);
+  const merge = parseMerge(doc["merge"] as Record<string, unknown> | undefined, baseDir);
+  if (merge === undefined && wallets.some((w) => w.mergeThreshold !== undefined)) {
+    throw new Error("a wallet sets merge_threshold, so [merge] fee_payer is required");
+  }
 
   return {
     network,
@@ -127,7 +149,19 @@ export function parseConfig(text: string, baseDir: string, env: NodeJS.ProcessEn
     wallets,
     webhooks,
     delivery,
+    ...(merge === undefined ? {} : { merge }),
   };
+}
+
+function parseMerge(t: Record<string, unknown> | undefined, baseDir: string): MergeConfig | undefined {
+  if (t === undefined) return undefined;
+  const feePayer = str(t, "fee_payer", "merge");
+  if (feePayer === undefined) throw new Error("merge.fee_payer is required");
+  const maxInputs = t["max_inputs"] ?? 24;
+  if (typeof maxInputs !== "number" || !Number.isInteger(maxInputs) || maxInputs < 2 || maxInputs > 24) {
+    throw new Error("merge.max_inputs must be an integer from 2 to 24");
+  }
+  return { feePayer: resolve(baseDir, feePayer), maxInputs };
 }
 
 function stringList(v: unknown, where: string): string[] | undefined {

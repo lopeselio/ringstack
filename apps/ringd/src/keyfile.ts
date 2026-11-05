@@ -53,6 +53,8 @@ export interface WatchKeys {
   readonly keys: LocalShieldedKeys;
   /** Copy of the viewing secret, for deriving the snapshot cipher key. Caller wipes it. */
   readonly viewingSecret: Uint8Array;
+  /** Copy of the nullifier secret, for merges (which spend the wallet's UTXOs). */
+  readonly nullifierSecret: Uint8Array;
 }
 
 /** Parse a key file and check that its secrets match its address. */
@@ -69,7 +71,8 @@ export function parseKeyFile(text: string): WatchKeys {
   const address = ShieldedAddress.fromBytes(Uint8Array.from(Buffer.from(json.address, "base64")));
   const viewingSecret = unhex(json.viewingKey, 32, "viewingKey");
   const viewing = ViewingKey.fromBytes(bytes32(viewingSecret.slice()));
-  const nullifier = NullifierKey.fromSecret(bytes31(unhex(json.nullifierKey, 31, "nullifierKey")));
+  const nullifierSecret = unhex(json.nullifierKey, 31, "nullifierKey");
+  const nullifier = NullifierKey.fromSecret(bytes31(nullifierSecret.slice()));
   try {
     const eq = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
     if (!eq(viewing.publicKey().toBytes(), address.viewingPublicKey.toBytes())) {
@@ -79,7 +82,7 @@ export function parseKeyFile(text: string): WatchKeys {
       throw new Error("key file: nullifierKey does not match address");
     }
     const keys = LocalShieldedKeys.fromKeys({ address, viewingKeys: [viewing], nullifierKey: nullifier });
-    return { address, keys, viewingSecret };
+    return { address, keys, viewingSecret, nullifierSecret };
   } finally {
     viewing.destroy();
     nullifier.destroy();

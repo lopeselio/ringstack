@@ -12,6 +12,11 @@ poll_interval_secs = 5
 [[wallet]]
 name = "shop"
 key_file = "./shop.ringd-key.json"   # from `ringd keys export`
+# merge_threshold = 30               # auto-merge once this many spendable UTXOs of an asset pile up
+
+# [merge]                            # required when a wallet sets merge_threshold
+# fee_payer = "./fee-payer.json"     # Solana keypair with SOL for fees only, NOT the wallet owner's key
+# max_inputs = 24
 
 # [[webhook]]
 # name = "orders"
