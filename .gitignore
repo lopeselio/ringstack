@@ -40,3 +40,4 @@ apps/docs/.astro/
 apps/paywall-demo/dist/
 leakscan-events.json
 leakscan-stats.json
+apps/leaks/public/stats.json
