@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./receipt": "./src/receipt.ts",
+    "./receipt-open": "./src/receipt-open.ts",
+    "./memo": "./src/memo.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
