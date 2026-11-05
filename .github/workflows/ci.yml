@@ -18,6 +18,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm --filter @ringstack/verifier build
 
   localnet:
     runs-on: ubuntu-latest
