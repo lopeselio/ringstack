@@ -1,0 +1,26 @@
+{
+  "name": "@ringstack/checkout-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
+    "start": "tsx --env-file-if-exists=.env src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "ringd": "tsx --env-file=.env ../ringd/src/cli.ts run --config .demo/ringd.toml",
+    "demo:setup": "tsx scripts/setup.ts"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.6.0-alpha",
+    "@nestjs/common": "12.3.3",
+    "@nestjs/core": "12.3.3",
+    "@nestjs/platform-fastify": "12.3.3",
+    "@ringstack/core": "workspace:*",
+    "@ringstack/ringd-client": "workspace:*",
+    "@solana/kit": "^8.6.0",
+    "fastify": "5.12.8",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  }
+}
