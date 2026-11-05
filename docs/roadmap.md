@@ -48,7 +48,7 @@ spec/
 - [x] Payroll `plan` (CSV, registry check, batching) and `run` (concurrent, resumable) ([apps/payroll](../apps/payroll); `payroll e2e`).
 - [x] Payroll audit bundle: per-run receipts for the accountant, verifiable with no keys (`payroll audit` / `verify-audit`).
 - [ ] Payroll per-payee proof. One transaction key opens a whole batch, so payees need a proof built from their own output rather than a batch receipt.
-- [ ] ringd auto-merge.
+- [x] ringd auto-merge without the spending key (key file + separate fee payer; memo UTXOs included).
 
 ## Milestone 3: Devnet release
 - [ ] Run everything against devnet; document known privacy limits (public sender/recipient in confidential rings; public deposit/withdraw edges).
