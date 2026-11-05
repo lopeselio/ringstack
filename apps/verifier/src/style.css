@@ -229,6 +229,8 @@ button:disabled {
 
 .to {
   color: var(--ink-soft);
+  /* Leave room for the absolutely positioned stamp. */
+  padding-right: 8.5rem;
 }
 
 .you .to {
@@ -314,6 +316,10 @@ button:disabled {
 
   .slip {
     padding-inline: 1.1rem;
+  }
+
+  .to {
+    padding-right: 0;
   }
 
   .stamp {
