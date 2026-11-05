@@ -6,6 +6,8 @@
  *   payroll run   --plan plan.json --keypair treasury.json [--concurrency 2]
  *   payroll status --plan plan.json
  *   payroll split --keypair treasury.json --parts <n> [--mint <mint>]
+ *   payroll audit --plan plan.json --keypair treasury.json [--out audit-<planId>]
+ *   payroll verify-audit --dir audit-<planId>
  *
  * Network from ZOLANA_* env (see .env.example). Run state lives next to the
  * plan as <plan>.state.json.
@@ -19,6 +21,7 @@ import { RingSession, clientConfigFromEnv, loadShieldedKeypair, spendableUtxos }
 import type { Cluster } from "@ringstack/core/receipt";
 import { address } from "@solana/kit";
 
+import { buildAudit, verifyAuditBundle, writeAuditBundle } from "./audit.ts";
 import { parsePayrollCsv } from "./csv.ts";
 import { buildPlan, loadPlan, type Plan } from "./plan.ts";
 import { runPlan } from "./run.ts";
@@ -28,7 +31,9 @@ const USAGE = `usage:
   payroll plan   --csv payroll.csv --keypair treasury.json [--mint <mint>] [--out plan.json] [--max-per-batch 15]
   payroll run    --plan plan.json --keypair treasury.json [--concurrency 2]
   payroll status --plan plan.json
-  payroll split  --keypair treasury.json --parts <n> [--mint <mint>]`;
+  payroll split  --keypair treasury.json --parts <n> [--mint <mint>]
+  payroll audit  --plan plan.json --keypair treasury.json [--out audit-<planId>]
+  payroll verify-audit --dir audit-<planId>`;
 
 const cluster = (process.env["ZOLANA_NETWORK"]?.trim() || "localnet") as Cluster;
 
@@ -158,12 +163,45 @@ async function split(args: string[]) {
   console.log(`split into ${values.parts}: ${tx.signature}`);
 }
 
+const statePathFor = (planPath: string) => `${planPath.replace(/\.json$/, "")}.state.json`;
+
+async function audit(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: { plan: { type: "string", default: "plan.json" }, keypair: { type: "string" }, out: { type: "string" } },
+  });
+  if (!values.keypair) throw new Error(USAGE);
+  const p = loadPlan(readFileSync(values.plan, "utf8"));
+  const state = loadRunState(statePathFor(values.plan), p.planId, p.batches.map((b) => b.id));
+  const session = await openSession(values.keypair);
+  const bundle = await buildAudit(session, p, state);
+  const dir = values.out ?? `audit-${p.planId}`;
+  writeAuditBundle(dir, bundle);
+  console.log(`wrote ${dir}/: ${bundle.payments.length} payments in ${bundle.batches.length} transaction(s), all verified onchain`);
+  console.log("It discloses this pay run's transactions only. Share it with your accountant; it holds no wallet keys.");
+}
+
+async function verifyAudit(args: string[]) {
+  const { values } = parseArgs({ args, options: { dir: { type: "string" } } });
+  if (!values.dir) throw new Error(USAGE);
+  await initializePoseidon();
+  const client = await createZolanaClient(clientConfigFromEnv());
+  const check = await verifyAuditBundle(values.dir, client);
+  if (check.manifest.cluster !== cluster) throw new Error(`bundle is for ${check.manifest.cluster}; ZOLANA_NETWORK is ${cluster}`);
+  console.log(
+    `ok: ${check.payments} payments, ${ui(check.total, check.manifest.decimals)} total, ` +
+      `${check.manifest.batches} transaction(s) on ${check.manifest.cluster}; every row matches a verified onchain output`,
+  );
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "plan") await plan(rest);
   else if (cmd === "run") await run(rest);
   else if (cmd === "status") status(rest);
   else if (cmd === "split") await split(rest);
+  else if (cmd === "audit") await audit(rest);
+  else if (cmd === "verify-audit") await verifyAudit(rest);
   else {
     console.error(USAGE);
     process.exitCode = 2;
