@@ -1,0 +1,23 @@
+{
+  "name": "@ringstack/verifier",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource/instrument-sans": "^5.3.0",
+    "@fontsource/martian-mono": "^5.3.0",
+    "@heliuslabs/zolana": "0.6.0-alpha",
+    "@ringstack/core": "workspace:*",
+    "@solana/kit": "^8.6.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}
