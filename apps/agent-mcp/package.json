@@ -1,0 +1,24 @@
+{
+  "name": "@ringstack/agent-mcp",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ringstack-agent-mcp": "./src/main.ts"
+  },
+  "scripts": {
+    "start": "tsx --env-file-if-exists=../../.env src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "tsx --env-file-if-exists=../../.env scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@ringstack/core": "workspace:*",
+    "@ringstack/paywall": "workspace:*",
+    "@solana/kit": "^8.6.0",
+    "zod": "4.6.7"
+  }
+}
