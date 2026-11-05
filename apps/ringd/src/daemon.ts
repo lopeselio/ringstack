@@ -8,6 +8,10 @@
  * snapshot and appending events is repaired on the next cycle.
  */
 import {
+  LocalKeys,
+  MergeEncryptionScheme,
+  NullifierKey,
+  ViewingKey,
   Wallet,
   createZolanaClient,
   keyedWalletSnapshotCipher,
@@ -18,7 +22,18 @@ import {
   type ZolanaClientConfig,
 } from "@heliuslabs/zolana";
 
-import { DEFAULT_DELIVERY, type DeliveryConfig, type WalletConfig, type WebhookConfig } from "./config.ts";
+import { bytes31, bytes32 } from "@heliuslabs/zolana/keypair";
+import { fetchUserRecord } from "@heliuslabs/zolana/wallet";
+import { buildMerge, loadShieldedKeypair, ownerAddress, spendableUtxos, submitTransaction } from "@ringstack/core";
+import type { Address, TransactionPartialSigner } from "@solana/kit";
+
+import {
+  DEFAULT_DELIVERY,
+  type DeliveryConfig,
+  type MergeConfig,
+  type WalletConfig,
+  type WebhookConfig,
+} from "./config.ts";
 import { newEvents, type RingdEvent } from "./events.ts";
 import { readKeyFile, type WatchKeys } from "./keyfile.ts";
 import type { RingdStore, StoredEvent } from "./store.ts";
@@ -42,12 +57,16 @@ class WatchedWallet {
   /** True until the first successful sync of a wallet that had no snapshot. */
   #firstSync: boolean;
 
+  /** Logged once per run when merging is configured but the owner has not opted in. */
+  #mergeDisabledLogged = false;
+
   private constructor(
     readonly name: string,
     readonly wallet: Wallet,
     readonly keys: WatchKeys,
     readonly cipher: WalletStateCipher,
     firstSync: boolean,
+    readonly mergeThreshold: number | undefined,
   ) {
     this.#firstSync = firstSync;
   }
@@ -60,7 +79,7 @@ class WatchedWallet {
       throw new Error(`wallet ${config.name}: stored snapshot belongs to a different address`);
     }
     const wallet = restored ?? new Wallet({ identity: keys.address });
-    return new WatchedWallet(config.name, wallet, keys, cipher, restored === undefined);
+    return new WatchedWallet(config.name, wallet, keys, cipher, restored === undefined, config.mergeThreshold);
   }
 
   /** Whether this wallet started without a stored snapshot (its first events are backfill). */
@@ -80,6 +99,64 @@ class WatchedWallet {
     this.#firstSync = false;
     return store.appendEvents(events, route);
   }
+
+  /**
+   * Merge an asset whose spendable UTXO count reached the threshold. Uses the
+   * key file's viewing + nullifier keys and a separate fee payer: the owner's
+   * spending key is never needed. Requires the owner's merge opt-in.
+   */
+  async maybeMerge(client: Client, feePayer: TransactionPartialSigner, maxInputs: number, log: Logger): Promise<void> {
+    const threshold = this.mergeThreshold;
+    if (threshold === undefined) return;
+    const assets = new Set(this.wallet.utxos().filter((e) => !e.spent).map((e) => e.utxo.asset));
+    const due = [...assets].filter((a) => spendableUtxos(this.wallet, a as Address).length >= threshold);
+    if (due.length === 0) return;
+
+    const owner = ownerAddress(this.keys.address);
+    const record = await fetchUserRecord({ rpc: client, owner });
+    if (record === undefined || record.mergeEncryption === MergeEncryptionScheme.Disabled) {
+      if (!this.#mergeDisabledLogged) {
+        log.error("merge skipped: owner has not enabled merging (setMerge / buildSetMergeEncryptionTransaction)", {
+          wallet: this.name,
+          owner,
+        });
+        this.#mergeDisabledLogged = true;
+      }
+      return;
+    }
+
+    for (const asset of due) {
+      const nullifierKey = NullifierKey.fromSecret(bytes31(this.keys.nullifierSecret.slice()));
+      const viewingKey = ViewingKey.fromBytes(bytes32(this.keys.viewingSecret.slice()));
+      const proofKeys = LocalKeys.fromKeys(
+        { address: this.keys.address, viewingKeys: [viewingKey], nullifierKey },
+        client.proofService,
+      );
+      try {
+        const built = await buildMerge({
+          client,
+          wallet: this.wallet,
+          authority: { address: this.keys.address, nullifierKey },
+          keys: proofKeys,
+          feePayer: feePayer.address,
+          asset: asset as Address,
+          maxInputs,
+        });
+        const confirmed = await submitTransaction(client, [feePayer], built.transaction);
+        log.info("merged", {
+          wallet: this.name,
+          asset,
+          inputs: built.inputs,
+          amount: built.amount.toString(),
+          signature: confirmed.signature,
+        });
+      } finally {
+        proofKeys.destroy();
+        nullifierKey.destroy();
+        viewingKey.destroy();
+      }
+    }
+  }
 }
 
 function sameAddress(wallet: Wallet, keys: WatchKeys): boolean {
@@ -97,6 +174,7 @@ export interface DaemonOptions {
   readonly onEvent?: (e: StoredEvent) => void | Promise<void>;
   readonly webhooks?: readonly WebhookConfig[];
   readonly delivery?: DeliveryConfig;
+  readonly merge?: MergeConfig;
   /** For tests. */
   readonly fetch?: typeof fetch;
 }
@@ -111,6 +189,7 @@ export class Daemon {
   readonly #log: Logger;
   #client?: Client;
   #watched: WatchedWallet[] = [];
+  #mergeFeePayer?: TransactionPartialSigner;
   readonly #dispatcher: Dispatcher;
   readonly #route: (e: RingdEvent) => readonly string[];
   #stopped = false;
@@ -126,6 +205,10 @@ export class Daemon {
 
   async start(): Promise<void> {
     this.#client = await createZolanaClient(this.#opts.client);
+    if (this.#opts.merge !== undefined) {
+      this.#mergeFeePayer = (await loadShieldedKeypair(this.#opts.merge.feePayer)).toSolanaSigner();
+      this.#log.info("merge fee payer", { address: this.#mergeFeePayer.address });
+    }
     for (const w of this.#opts.wallets) {
       const watched = await WatchedWallet.open(w, this.#opts.store);
       this.#watched.push(watched);
@@ -151,6 +234,15 @@ export class Daemon {
         all.push(...added);
       } catch (err) {
         this.#log.error("sync failed", { wallet: w.name, error: (err as Error).message });
+        continue;
+      }
+      // After events are recorded, so a merged-away memo payment was already reported.
+      if (this.#mergeFeePayer !== undefined && this.#opts.merge !== undefined) {
+        try {
+          await w.maybeMerge(client, this.#mergeFeePayer, this.#opts.merge.maxInputs, this.#log);
+        } catch (err) {
+          this.#log.error("merge failed", { wallet: w.name, error: (err as Error).message });
+        }
       }
     }
     const dispatch = await this.#dispatcher.runOnce();

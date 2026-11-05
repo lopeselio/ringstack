@@ -53,6 +53,7 @@ async function run(args: string[]) {
     log: jsonLogger,
     webhooks: config.webhooks,
     delivery: config.delivery,
+    ...(config.merge === undefined ? {} : { merge: config.merge }),
   });
   await daemon.start();
   if (values.once) {
