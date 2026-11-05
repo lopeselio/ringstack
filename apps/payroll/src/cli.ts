@@ -8,6 +8,9 @@
  *   payroll split --keypair treasury.json --parts <n> [--mint <mint>]
  *   payroll audit --plan plan.json --keypair treasury.json [--out audit-<planId>]
  *   payroll verify-audit --dir audit-<planId>
+ *   payroll payslips --keypair employee.json                          (payee: list incoming payments)
+ *   payroll prove --keypair employee.json --signature <sig> [--output-slot n] [--verifier-url url]
+ *   payroll verify-proof <ringproof1:…>                               (anyone: check a payee's proof)
  *
  * Network from ZOLANA_* env (see .env.example). Run state lives next to the
  * plan as <plan>.state.json.
@@ -17,12 +20,13 @@ import { parseArgs } from "node:util";
 
 import { SOL_MINT, createZolanaClient, fetchAssetMetadata, initializePoseidon } from "@heliuslabs/zolana";
 import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
-import { RingSession, clientConfigFromEnv, loadShieldedKeypair, spendableUtxos } from "@ringstack/core";
+import { RingSession, clientConfigFromEnv, decodeMemo, loadShieldedKeypair, spendableUtxos } from "@ringstack/core";
 import type { Cluster } from "@ringstack/core/receipt";
-import { address } from "@solana/kit";
+import { address, type Signature } from "@solana/kit";
 
 import { buildAudit, verifyAuditBundle, writeAuditBundle } from "./audit.ts";
 import { parsePayrollCsv } from "./csv.ts";
+import { checkProof, formatAmount, listPayslips, provePayslip } from "./payslip.ts";
 import { buildPlan, loadPlan, type Plan } from "./plan.ts";
 import { runPlan } from "./run.ts";
 import { loadRunState } from "./state.ts";
@@ -33,7 +37,10 @@ const USAGE = `usage:
   payroll status --plan plan.json
   payroll split  --keypair treasury.json --parts <n> [--mint <mint>]
   payroll audit  --plan plan.json --keypair treasury.json [--out audit-<planId>]
-  payroll verify-audit --dir audit-<planId>`;
+  payroll verify-audit --dir audit-<planId>
+  payroll payslips --keypair employee.json
+  payroll prove --keypair employee.json --signature <sig> [--output-slot n] [--verifier-url url]
+  payroll verify-proof <ringproof1:…>`;
 
 const cluster = (process.env["ZOLANA_NETWORK"]?.trim() || "localnet") as Cluster;
 
@@ -194,6 +201,59 @@ async function verifyAudit(args: string[]) {
   );
 }
 
+async function payslips(args: string[]) {
+  const { values } = parseArgs({ args, options: { keypair: { type: "string" } } });
+  if (!values.keypair) throw new Error(USAGE);
+  const session = await openSession(values.keypair);
+  const slips = listPayslips(session);
+  if (slips.length === 0) console.log("no incoming payments yet");
+  for (const p of slips) {
+    console.log(`${p.signature}  slot ${p.slot}  ${formatAmount(BigInt(p.amount), p.asset)}${p.memo ? `  "${p.memo}"` : ""}`);
+  }
+}
+
+async function prove(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: {
+      keypair: { type: "string" },
+      signature: { type: "string" },
+      "output-slot": { type: "string" },
+      "verifier-url": { type: "string" },
+    },
+  });
+  if (!values.keypair || !values.signature) throw new Error(USAGE);
+  const session = await openSession(values.keypair);
+  const link = await provePayslip(
+    session,
+    values.signature as Signature,
+    cluster,
+    values["output-slot"] === undefined ? undefined : Number(values["output-slot"]),
+  );
+  console.log(link);
+  if (values["verifier-url"]) console.log(`${values["verifier-url"].replace(/#.*$/, "")}#${link}`);
+  console.error("This proves your output only. It reveals nothing about anyone else paid in the same transaction.");
+}
+
+async function verifyProof(args: string[]) {
+  const link = args[0];
+  if (!link) throw new Error(USAGE);
+  await initializePoseidon();
+  const client = await createZolanaClient(clientConfigFromEnv());
+  const c = await checkProof(client, link);
+  if (c.cluster !== cluster) throw new Error(`proof is for ${c.cluster}; ZOLANA_NETWORK is ${cluster}`);
+  const memo = decodeMemo(c.memo);
+  console.log(`ok: ${formatAmount(c.amount, c.mint)} paid to ${c.owner}`);
+  console.log(`  transaction ${c.signature} (slot ${c.slot}, output ${c.outputSlot})`);
+  if (memo !== undefined) console.log(`  memo "${memo}"`);
+  if (c.feePayer !== undefined) console.log(`  fee paid by ${c.feePayer}`);
+  console.log(
+    c.registered
+      ? "  the payee's registry record matches this proof's keys"
+      : "  note: the payee's current registry record does not carry this proof's viewing key",
+  );
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "plan") await plan(rest);
@@ -202,6 +262,9 @@ try {
   else if (cmd === "split") await split(rest);
   else if (cmd === "audit") await audit(rest);
   else if (cmd === "verify-audit") await verifyAudit(rest);
+  else if (cmd === "payslips") await payslips(rest);
+  else if (cmd === "prove") await prove(rest);
+  else if (cmd === "verify-proof") await verifyProof(rest);
   else {
     console.error(USAGE);
     process.exitCode = 2;
