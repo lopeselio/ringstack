@@ -14,7 +14,8 @@ import { encodeReceipt } from "../src/receipt.ts";
 import { fetchShieldedTransaction, issueReceipt } from "../src/receipt-open.ts";
 import { RingSession } from "../src/session.ts";
 
-const verifierBase = process.argv[2] ?? "http://localhost:5173/";
+// The hosted verifier reads devnet; pass http://localhost:5173/ for a local one.
+const verifierBase = process.argv[2] ?? "https://lopeselio.github.io/ringstack/verify/";
 
 await initializePoseidon();
 const client = await createZolanaClient(clientConfigFromEnv());

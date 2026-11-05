@@ -67,7 +67,7 @@ writeFileSync(
     `CLUSTER=${network}`,
     "DATABASE=.demo/checkout.db",
     "DEMO_CUSTOMER_KEYPAIR=.demo/customer.json",
-    "VERIFIER_URL=http://localhost:5173/",
+    "VERIFIER_URL=https://lopeselio.github.io/ringstack/verify/",
     "",
   ].join("\n"),
   { mode: 0o600 },

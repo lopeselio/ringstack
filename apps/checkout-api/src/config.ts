@@ -6,7 +6,7 @@
  *   CLUSTER                 localnet | devnet            (default localnet)
  *   DATABASE                SQLite path                  (default ./checkout.db)
  *   PORT, HOST              listen address               (default 4000, 127.0.0.1)
- *   VERIFIER_URL            receipt verifier base URL    (default http://localhost:5173/)
+ *   VERIFIER_URL            receipt verifier base URL    (default https://lopeselio.github.io/ringstack/verify/)
  *   DEMO_CUSTOMER_KEYPAIR   test networks only: Solana keypair file the demo "pay" button spends from
  */
 import { isAddress, type Address } from "@solana/kit";
@@ -42,7 +42,7 @@ export function loadApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     database: env["DATABASE"]?.trim() || "./checkout.db",
     port: Number(env["PORT"] ?? 4000),
     host: env["HOST"]?.trim() || "127.0.0.1",
-    verifierUrl: env["VERIFIER_URL"]?.trim() || "http://localhost:5173/",
+    verifierUrl: env["VERIFIER_URL"]?.trim() || "https://lopeselio.github.io/ringstack/verify/",
     ...(demo ? { demoCustomerKeypair: demo } : {}),
   };
 }
