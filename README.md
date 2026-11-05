@@ -35,13 +35,15 @@ pnpm typecheck && pnpm test
 
 # Local zolana stack (validator, Photon indexer, prover)
 ./scripts/install-zolana.sh  # downloads + sha256-verifies the v0.6.0-alpha CLI
-./scripts/localnet.sh        # zolana dev start (keep running)
+./scripts/localnet.sh        # zolana dev start; returns when ready, runs in background
 pnpm --filter @ringstack/core smoke
 
-# Further localnet checks
+# Further localnet checks (`pnpm --filter @ringstack/core e2e` runs all four; CI does too)
 pnpm --filter @ringstack/core receipt:e2e   # receipts issue/open/verify
 pnpm --filter @ringstack/core memo:e2e      # encrypted transfer memos
 pnpm --filter @ringstack/core session:e2e   # register, merge, deposit, transfer, withdraw
+
+./scripts/localnet.sh --stop
 ```
 
 ## Background
