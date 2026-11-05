@@ -16,7 +16,7 @@ https://<host>/?to=<address>#ringrcpt1:…    also mark and check the output pai
 ?rpc=<url>&indexer=<url>                     override the cluster's endpoints
 ```
 
-Defaults: localnet uses the `zolana dev start` ports; devnet uses `api.devnet.solana.com` and the Helius devnet indexer. Mainnet receipts need explicit overrides.
+Defaults: devnet uses `api.devnet.solana.com` and the Helius devnet indexer. Mainnet receipts need explicit overrides.
 
 ## Develop
 
@@ -25,6 +25,6 @@ pnpm --filter @ringstack/verifier dev        # http://localhost:5173
 pnpm --filter @ringstack/verifier build      # static files in apps/verifier/dist
 ```
 
-To get a receipt to try, start localnet and run `pnpm --filter @ringstack/core receipt:demo`: a registered customer pays a registered merchant with a memo, and the script prints a verifier link.
+To get a receipt to try, run `ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json pnpm --filter @ringstack/core receipt:demo`: a registered customer pays a registered merchant with a memo, and the script prints a verifier link.
 
 The zolana SDK (with its hasher WASM) is about 1.4 MB gzipped. It is split into a separate chunk that loads on the first check.

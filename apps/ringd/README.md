@@ -139,10 +139,10 @@ max_inputs = 24                 # UTXOs per merge (2–24, default 24)
 - **Events:** each cycle compares the wallet's full history to the `events` table and appends what is missing. A crash between saving the snapshot and appending events is repaired on the next cycle, and a restart never re-emits.
 - **Deliveries:** one row per (webhook, event), written in the same transaction as the event, so an event is never recorded without its deliveries.
 
-## Check on localnet
+## Check on devnet
 
 ```bash
-./scripts/localnet.sh && pnpm --filter @ringstack/ringd e2e
+ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json pnpm --filter @ringstack/ringd e2e
 ```
 
 This covers a payment received before ringd started (reported once, `backfill`), a live payment with an order memo, an idle cycle and a restart with no duplicates, and the merchant spending elsewhere, which ringd reports as `payment.sent` with read-only keys. A second wallet that opted in gets three memo payments and is merged into one plain UTXO by ringd with only its key file and a separate fee payer (the owner's SOL balance does not change); the first wallet, over its threshold but not opted in, is skipped. A local receiver verifies every webhook. One endpoint fails twice and then succeeds on the same `ringd-id`, and an unreachable one ends `failed` and is requeued.

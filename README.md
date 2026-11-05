@@ -31,24 +31,23 @@ Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 ```bash
 nvm use                      # Node 24
 pnpm install
-pnpm typecheck && pnpm test
-
-# Local zolana stack (validator, Photon indexer, prover)
-./scripts/install-zolana.sh  # downloads + sha256-verifies the v0.6.0-alpha CLI
-./scripts/localnet.sh        # zolana dev start; returns when ready, runs in background
-pnpm --filter @ringstack/core smoke
-
-# Further localnet checks (`pnpm --filter @ringstack/core e2e` runs all five; CI does too)
-pnpm --filter @ringstack/core receipt:e2e   # receipts issue/open/verify
-pnpm --filter @ringstack/core memo:e2e      # encrypted transfer memos
-pnpm --filter @ringstack/core session:e2e   # register, merge, deposit, transfer, withdraw
-pnpm --filter @ringstack/core ringpay:e2e   # pay a ringpay: request, verify the receipt
-
-./scripts/localnet.sh --stop
+pnpm typecheck && pnpm test  # unit tests, no network needed
 ```
+
+Integration tests run on **devnet** (zolana 0.8). Put your Helius `API_KEY` in the root `.env`, fund a devnet keypair for test wallets, then:
+
+```bash
+export ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json
+pnpm --filter @ringstack/core e2e      # smoke, receipts, memos, wallet session, RingPay
+pnpm --filter @ringstack/ringd e2e     # events, signed webhooks, auto-merge
+pnpm --filter @ringstack/payroll e2e   # batches, resume, audit bundle, per-payee proof
+```
+
+See [docs/devnet.md](docs/devnet.md) for setup, results, the trust model and **privacy limits**. There is no local stack for zolana 0.8 yet: Helius publishes no 0.8 binaries, and the `scripts/` local network installs v0.6.0-alpha, which the 0.8 SDK refuses (details in the same doc).
 
 ## Background
 
+- [Devnet: setup, results, privacy limits](docs/devnet.md)
 - [Platform notes](docs/platform-notes.md) — what Helius Privacy provides, its primitives, constraints, and version pinning.
 - [Milestone 0 SDK findings](docs/spikes/m0-sdk-findings.md) — receipts, batching, memos, versions.
 - [Receipt spec](spec/receipt.md)
