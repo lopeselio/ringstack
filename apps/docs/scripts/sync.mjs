@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../../..");
 const out = resolve(here, "../src/content/docs");
-const GITHUB = "https://github.com/lopeselio/helius-privacy/blob/main/";
+const GITHUB = "https://github.com/lopeselio/ringstack/blob/main/";
 
 /** Repo path → site slug, title, description. */
 const PAGES = [

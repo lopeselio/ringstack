@@ -6,7 +6,7 @@ export default defineConfig({
     starlight({
       title: "ringstack",
       description: "Open-source tooling for private payments on Solana, built on Helius Privacy.",
-      social: [{ icon: "github", label: "GitHub", href: "https://github.com/lopeselio/helius-privacy" }],
+      social: [{ icon: "github", label: "GitHub", href: "https://github.com/lopeselio/ringstack" }],
       customCss: ["./src/styles/theme.css"],
       lastUpdated: false,
       sidebar: [

@@ -8,7 +8,7 @@ description: Install, run the unit tests, then run everything on devnet.
 You need Node 24 and pnpm.
 
 ```bash
-git clone https://github.com/lopeselio/helius-privacy && cd helius-privacy
+git clone https://github.com/lopeselio/ringstack && cd ringstack
 nvm use
 pnpm install
 pnpm typecheck && pnpm test     # unit tests, no network needed
