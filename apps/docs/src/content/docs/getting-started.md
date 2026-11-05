@@ -46,11 +46,11 @@ Each suite creates fresh wallets, funds them from your keypair, and checks every
 ## Try it by hand
 
 - **Make a receipt and check it.** `pnpm --filter @ringstack/core receipt:demo` prints a verifier link. Start the verifier with `pnpm --filter @ringstack/verifier dev` and open the link.
-- **Run the shop.** Follow the [checkout demo](/tools/checkout-demo/) to order a coffee, pay for it privately, and watch ringd mark it paid.
-- **Pay a team.** Write a CSV and follow [private payroll](/tools/payroll/).
+- **Run the shop.** Follow the [checkout demo](../tools/checkout-demo/) to order a coffee, pay for it privately, and watch ringd mark it paid.
+- **Pay a team.** Write a CSV and follow [private payroll](../tools/payroll/).
 
 ## Next
 
-- [How it fits together](/overview/)
-- [Running on devnet](/guides/devnet/): results and how the client reaches devnet
-- [Privacy limits](/guides/privacy/)
+- [How it fits together](../overview/)
+- [Running on devnet](../guides/devnet/): results and how the client reaches devnet
+- [Privacy limits](../guides/privacy/)

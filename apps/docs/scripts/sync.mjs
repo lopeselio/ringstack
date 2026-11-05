@@ -1,7 +1,8 @@
 // Copy the repo's specs, guides and READMEs into the docs site at build time,
 // so each page has one source of truth. Adds frontmatter, drops the source's
 // H1 (Starlight renders the title), and rewrites relative links: targets that
-// are on the site become site routes, everything else points at GitHub.
+// are on the site become page-relative site links (so the site works under any
+// base path, e.g. GitHub Pages' /ringstack/), everything else points at GitHub.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,14 +30,20 @@ const PAGES = [
 ];
 const SLUG = new Map(PAGES.map(([src, slug]) => [src, slug]));
 
-function rewriteLinks(markdown, srcPath) {
+/** Link from the page at `fromSlug` to the page at `toSlug`, relative to the page's URL. */
+function pageLink(fromSlug, toSlug) {
+  const rel = posix.relative(`/${fromSlug}/`, `/${toSlug}/`);
+  return rel === "" ? "./" : `${rel}/`;
+}
+
+function rewriteLinks(markdown, srcPath, fromSlug) {
   return markdown.replace(/\]\((?!https?:|mailto:|#)([^)\s]+)\)/g, (whole, target) => {
     const [path, anchor = ""] = target.split("#");
     if (path === "") return whole;
     const repoPath = normalize(posix.join(posix.dirname(srcPath), path)).replace(/\\/g, "/").replace(/\/$/, "");
     const hash = anchor ? `#${anchor}` : "";
     const direct = SLUG.get(repoPath) ?? SLUG.get(`${repoPath}/README.md`);
-    if (direct) return `](/${direct}/${hash})`;
+    if (direct) return `](${pageLink(fromSlug, direct)}${hash})`;
     return `](${GITHUB}${repoPath}${hash})`;
   });
 }
@@ -48,7 +55,7 @@ function stripH1(markdown) {
 const yaml = (s) => JSON.stringify(s);
 
 for (const [src, slug, title, description] of PAGES) {
-  const body = rewriteLinks(stripH1(readFileSync(join(repo, src), "utf8")), src);
+  const body = rewriteLinks(stripH1(readFileSync(join(repo, src), "utf8")), src, slug);
   const target = join(out, `${slug}.md`);
   rmSync(target, { force: true });
   mkdirSync(dirname(target), { recursive: true });

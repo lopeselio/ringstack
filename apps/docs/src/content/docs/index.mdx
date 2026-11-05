@@ -8,10 +8,10 @@ hero:
   tagline: ringstack is open-source tooling on Helius Privacy. Request a payment, watch for it without handing out your keys, pay a team privately, and give anyone a link that proves what was paid.
   actions:
     - text: Get started
-      link: /getting-started/
+      link: getting-started/
       icon: right-arrow
     - text: How it fits together
-      link: /overview/
+      link: overview/
       variant: minimal
 ---
 
@@ -43,14 +43,14 @@ ringrcpt1:AQCiZaSPDMA5O5BmcOeXkc8SElljb9_xs39R0bheudl26NgAhes63HXT_v9f5A18lQokEa
 ringproof1:AQD4gzzk5kJ1DCpQ2E1SH1R_7JQit20Dgn1PYYWzOdtVRt0I6nKDatsk6-W07NOzGqPoZC10y54q…
 ```
 
-Paste either of the last two into the [verifier page](/tools/verifier/) to check it.
+Paste either of the last two into the [verifier page](tools/verifier/) to check it.
 
 ## What's here
 
-- [**ringd**](/tools/ringd/): A self-hosted daemon that watches a wallet with read-only keys and sends signed webhooks when payments arrive, memo included. It can also merge small payments without the spending key.
-- [**Private payroll**](/tools/payroll/): A CLI that pays a CSV of people in batches of up to 15, resumes safely after a crash, and produces an audit bundle for the accountant.
-- [**Verifier page**](/tools/verifier/): A static page that checks receipts and payment proofs in the browser, with no keys and no account.
-- [**Checkout demo**](/tools/checkout-demo/): A Next.js shop and NestJS API that take a private payment, hear about it from ringd, and mark the order paid.
-- [**@ringstack/core**](/overview/#packages): The TypeScript library underneath: wallet sessions, memos, payment requests, receipts and proofs.
+- [**ringd**](tools/ringd/): A self-hosted daemon that watches a wallet with read-only keys and sends signed webhooks when payments arrive, memo included. It can also merge small payments without the spending key.
+- [**Private payroll**](tools/payroll/): A CLI that pays a CSV of people in batches of up to 15, resumes safely after a crash, and produces an audit bundle for the accountant.
+- [**Verifier page**](tools/verifier/): A static page that checks receipts and payment proofs in the browser, with no keys and no account.
+- [**Checkout demo**](tools/checkout-demo/): A Next.js shop and NestJS API that take a private payment, hear about it from ringd, and mark the order paid.
+- [**@ringstack/core**](overview/#packages): The TypeScript library underneath: wallet sessions, memos, payment requests, receipts and proofs.
 
-Before relying on any of it, read the [privacy limits](/guides/privacy/): what stays hidden, and what does not.
+Before relying on any of it, read the [privacy limits](guides/privacy/): what stays hidden, and what does not.
