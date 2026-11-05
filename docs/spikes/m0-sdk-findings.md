@@ -45,7 +45,7 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
   - Consequence 2: withdrawing and merging memo UTXOs need our own lower-level paths, now in `RingSession` (verified on localnet in `session:e2e`):
     - **Withdraw (SOL):** `ConfidentialTransfer.withdraw(SOL_MINT, amount, WithdrawalTarget.sol(...))` plus `transactInstruction({ withdrawal: TransactWithdrawal.sol(...) })`. SPL needs the SPL interface PDA and bump, which the SDK keeps internal; not supported yet.
     - **Merge:** `buildMergeTransaction({ inputs })` skips the selection filter, but the merge builder re-checks and throws `TRANSACTION_MERGE_INPUT_HAS_DATA` for any non-empty `data`. Since the memo is outside the commitment, a memo UTXO rebuilt without its memo has the same hash, so `Merge.fromKeypair(keypair, strippedInputs)` → `client.proveMerge` → `client.assembleAuthorizedMergeTransaction` merges them; the program accepts it and the merged output is plain. `Merge.fromKeypair` needs the full keypair; ringd's key-file auto-merge will need the `new Merge({...})` form.
-  - Upstream ask: treat memo-only data as plain in `isPlainUtxo` (the memo is outside the commitment, so the proof is unaffected).
+  - Upstream ask: treat memo-only data as plain in `isPlainUtxo`, the merge builder's `hasData`, and Rust `is_plain` (the memo is outside the commitment, so the proof is unaffected). Filed as [helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543). Our fallbacks in `RingSession` can go once it ships.
 - Localnet: `pnpm --filter @ringstack/core memo:e2e` (recipient reads `order:…`, receipt shows it next to a `verified` amount, change carries no memo).
 
 ## Wallet helpers: ✅ verified on localnet
