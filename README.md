@@ -53,6 +53,7 @@ pnpm --filter @ringstack/core ringpay:e2e   # pay a ringpay: request, verify the
 - [Milestone 0 SDK findings](docs/spikes/m0-sdk-findings.md) — receipts, batching, memos, versions.
 - [Receipt spec](spec/receipt.md)
 - [RingPay payment request URI spec](spec/ringpay-uri.md)
+- [Payment proof spec](spec/payment-proof.md): a payee proves one output without revealing the rest
 - [Checkout demo](apps/checkout-demo/README.md): Next.js shop + NestJS API + ringd, end to end on localnet
 - [Private payroll CLI](apps/payroll/README.md)
 
