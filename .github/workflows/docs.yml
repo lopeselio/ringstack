@@ -1,8 +1,9 @@
 name: docs
 
-# Builds apps/docs and apps/verifier and publishes them to GitHub Pages:
+# Builds apps/docs, apps/verifier and apps/leaks and publishes them to GitHub Pages:
 #   https://lopeselio.github.io/ringstack/          docs
 #   https://lopeselio.github.io/ringstack/verify/   receipt and proof verifier
+#   https://lopeselio.github.io/ringstack/leaks/    pool leak report (rescanned daily)
 # The docs are generated from the repo's specs, guides and READMEs, so the site
 # redeploys when any of them, the verifier, or the core library change.
 on:
@@ -15,9 +16,13 @@ on:
       - "apps/*/README.md"
       - "packages/*/README.md"
       - "apps/verifier/**"
+      - "apps/leaks/**"
+      - "packages/leakscan/src/**"
       - "packages/core/src/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/docs.yml"
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -44,6 +49,27 @@ jobs:
       - run: pnpm --filter @ringstack/verifier build
       # The verifier's build uses relative asset paths, so it works from /verify/.
       - run: cp -R apps/verifier/dist apps/docs/dist/verify
+      # Leak report: rescan devnet incrementally from yesterday's event cache.
+      # The cache holds addresses and stays private; only aggregate stats.json is published.
+      - uses: actions/cache@v4
+        with:
+          path: leakscan-events.json
+          key: leakscan-devnet-${{ github.run_id }}
+          restore-keys: leakscan-devnet-
+      - name: Scan devnet pool activity
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          ZOLANA_NETWORK: devnet
+        timeout-minutes: 40
+        run: |
+          if [ -z "$API_KEY" ]; then echo "no API_KEY; skipping the scan"; exit 0; fi
+          pnpm --filter @ringstack/leakscan leakscan scan --events "$GITHUB_WORKSPACE/leakscan-events.json" --days 7 || echo "::warning::scan failed; publishing from the cached events"
+          mkdir -p apps/leaks/public
+          if [ -f leakscan-events.json ]; then
+            pnpm --filter @ringstack/leakscan leakscan stats --events "$GITHUB_WORKSPACE/leakscan-events.json" --out "$GITHUB_WORKSPACE/apps/leaks/public/stats.json"
+          fi
+      - run: pnpm --filter @ringstack/leaks build
+      - run: cp -R apps/leaks/dist apps/docs/dist/leaks
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
