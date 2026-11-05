@@ -1,0 +1,290 @@
+:root {
+  --bg: #e9eeea;
+  --surface: #fafbf9;
+  --ink: #17231d;
+  --muted: #5b6b62;
+  --line: #c9d3cc;
+  --accent: #1f6b4e;
+  --accent-ink: #f4f8f5;
+  --warn: #9a5b13;
+  --focus: #2c6fb0;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121a16;
+    --surface: #1a241f;
+    --ink: #e6eee9;
+    --muted: #9aaba1;
+    --line: #2e3c35;
+    --accent: #5fbf93;
+    --accent-ink: #0f1a14;
+    --warn: #e0a457;
+    --focus: #8bb8ea;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+.page {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 3.5rem 1rem 5rem;
+}
+
+.masthead {
+  max-width: 38rem;
+  margin-bottom: 3rem;
+}
+
+.masthead h1 {
+  font-size: clamp(2.4rem, 1.6rem + 3vw, 3.6rem);
+  line-height: 1;
+  margin-bottom: 0.9rem;
+}
+
+.masthead p,
+.quiet {
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  gap: 3rem;
+}
+
+@media (min-width: 56rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    align-items: start;
+  }
+}
+
+/* Menu: plain rows, like a chalkboard. */
+.menu h2 {
+  font-size: 1.35rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.25rem 1.5rem;
+  align-items: baseline;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.row h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.15rem;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.footnote {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* Buttons */
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.text-button {
+  justify-self: start;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.primary {
+  padding: 0.7rem 1.2rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+/* The ticket: the one loud element. */
+.ticket {
+  position: sticky;
+  top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.ticket-head {
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+.ticket-head h2 {
+  font-size: 1.6rem;
+}
+
+.ticket-head .price {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.qr {
+  width: 100%;
+  max-width: 15rem;
+  margin: 0.25rem auto;
+  color: var(--ink);
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* QR stays dark-on-light in both themes so scanners read it. */
+.qr svg path:first-child {
+  fill: #ffffff;
+}
+
+.qr svg path:last-child {
+  stroke: #17231d;
+}
+
+.status {
+  font-weight: 600;
+}
+
+.is-underpaid .status {
+  color: var(--warn);
+}
+
+.paid-mark {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 4rem;
+  line-height: 1;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  animation: settle 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.paid-note {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+}
+
+.ticket.is-paid {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paid-mark {
+    animation: none;
+  }
+}
+
+.demo {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line);
+}
+
+.demo h3 {
+  font-size: 1.05rem;
+}
+
+.error {
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--warn);
+  background: var(--bg);
+}
+
+@media (max-width: 30rem) {
+  .row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .row .text-button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
