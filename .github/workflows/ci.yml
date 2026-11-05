@@ -20,6 +20,7 @@ jobs:
       - run: pnpm test
       - run: pnpm --filter @ringstack/verifier build
       - run: pnpm --filter @ringstack/checkout-demo build
+      - run: pnpm --filter @ringstack/docs build
 
 # Integration tests run against devnet in devnet.yml (nightly and on demand):
 # zolana 0.8 publishes no local-stack binaries, so there is no localnet job.
