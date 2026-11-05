@@ -6,10 +6,13 @@
  *     reconciles b001 from its saved signature instead of paying again
  *   - a second plan whose saved attempt expired without landing is retried once
  *   - every payee ends with exactly what the plan says (no double payment)
+ *   - an audit bundle for the run verifies with no keys; a forged amount (with
+ *     its file hash updated to match) is caught against the chain
  *
  *   pnpm --filter @ringstack/payroll e2e
  */
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,6 +21,7 @@ import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
 import { RingSession, clientConfigFromEnv, decodeMemo, spendableUtxos } from "@ringstack/core";
 import { lamports, type Address } from "@solana/kit";
 
+import { AuditError, buildAudit, verifyAuditBundle, writeAuditBundle } from "../src/audit.ts";
 import { parsePayrollCsv } from "../src/csv.ts";
 import { buildPlan, type Plan } from "../src/plan.ts";
 import { CrashSimulated, runPlan } from "../src/run.ts";
@@ -136,4 +140,30 @@ check(memos.includes("Payroll 2026-11") && memos.includes("Bonus"), `payee 0 mem
 check(!existsSync(`${statePath}.tmp`), "state temp file left behind");
 console.log("every payee balance matches the plan; payee 0 got both memos");
 
-console.log("ok: payroll plan, concurrent batches, crash + resume without double payment, expired-attempt retry");
+// Audit bundle for the first pay run: built with the treasury's keys, verified with none.
+const auditDir = join(dir, `audit-${plan.planId}`);
+const bundle = await buildAudit(treasury, plan, final);
+writeAuditBundle(auditDir, bundle);
+const checked = await verifyAuditBundle(auditDir, client);
+check(checked.payments === 18 && checked.total === BigInt(plan.totals.amount), "audit totals");
+console.log(`audit bundle verified: ${checked.payments} payments in ${bundle.batches.length} transactions`);
+
+// Forge one amount and re-sign the manifest hash: only the chain can catch it now.
+const csvPath = join(auditDir, "payments.csv");
+const forged = readFileSync(csvPath, "utf8").replace(`,${bundle.payments[1]!.amount},`, ",999999999,");
+writeFileSync(csvPath, forged);
+const manifestPath = join(auditDir, "manifest.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+manifest.files["payments.csv"] = createHash("sha256").update(forged).digest("hex");
+writeFileSync(manifestPath, JSON.stringify(manifest));
+let caught = "";
+try {
+  await verifyAuditBundle(auditDir, client);
+} catch (e) {
+  if (e instanceof AuditError) caught = e.message;
+  else throw e;
+}
+check(/paid \d+, expected 999999999/.test(caught), `forged amount not caught: ${caught}`);
+console.log("forged amount caught against the chain");
+
+console.log("ok: payroll plan, concurrent batches, crash + resume without double payment, expired-attempt retry, audit bundle");
