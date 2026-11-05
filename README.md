@@ -2,6 +2,8 @@
 
 Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (Solana Rings, powered by [zolana](https://github.com/helius-labs/zolana)).
 
+**Docs: https://lopeselio.github.io/ringstack/**
+
 > Helius Privacy is **beta and devnet-only**. Programs are under audit. Nothing here is production-ready.
 
 ## Selected builds
@@ -47,11 +49,11 @@ See [docs/devnet.md](docs/devnet.md) for setup, results and the trust model, and
 
 ## Documentation site
 
-```bash
-pnpm --filter @ringstack/docs dev      # http://localhost:4321
-```
+Published at **https://lopeselio.github.io/ringstack/** on every push to `main` that touches the docs (`.github/workflows/docs.yml`). [apps/docs](apps/docs) builds it from the docs below and the app READMEs. To work on it locally:
 
-[apps/docs](apps/docs) builds a searchable site from the docs below and the app READMEs.
+```bash
+pnpm --filter @ringstack/docs dev      # http://localhost:4321/ringstack/
+```
 
 ## Background
 

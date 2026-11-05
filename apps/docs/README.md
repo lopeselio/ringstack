@@ -2,10 +2,14 @@
 
 The ringstack documentation site, built with [Astro Starlight](https://starlight.astro.build/).
 
+Live at **https://lopeselio.github.io/ringstack/**, deployed to GitHub Pages by `.github/workflows/docs.yml` whenever the docs or their sources change on `main`.
+
 ```bash
-pnpm --filter @ringstack/docs dev       # http://localhost:4321
+pnpm --filter @ringstack/docs dev       # http://localhost:4321/ringstack/
 pnpm --filter @ringstack/docs build     # static site in apps/docs/dist
 ```
+
+The site is served from the `/ringstack` base path, so links between pages are page-relative (`../tools/ringd/`); the sync script writes them that way for generated pages.
 
 Most pages are not written here. `scripts/sync.mjs` copies the repo's specs, guides and READMEs into `src/content/docs/` before every dev, build and typecheck run, so each page has one source of truth. Edit the source file (the generated page names it), not the copy. The sync adds frontmatter, drops the source's H1, and rewrites relative links: targets that are on the site become site routes, and everything else links to the file on GitHub.
 

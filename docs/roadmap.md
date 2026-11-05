@@ -52,7 +52,7 @@ spec/
 
 ## Milestone 3: Devnet release
 - [x] Run everything against devnet; document known privacy limits ([docs/devnet.md](devnet.md); upgraded to zolana 0.8, nightly devnet CI).
-- [x] Docs site ([apps/docs](../apps/docs), Astro Starlight, generated from the repo docs).
+- [x] Docs site ([apps/docs](../apps/docs), Astro Starlight, generated from the repo docs), live at https://lopeselio.github.io/ringstack/.
 - [ ] Demo video.
 
 ## Track Z: zk-gadgets (parallel, longer)
