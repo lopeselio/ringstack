@@ -44,7 +44,7 @@ spec/
 
 ## Milestone 2: RingPay + payroll
 - [x] `ringpay:` URI spec + parser; memo schema with `order` ([spec](../spec/ringpay-uri.md); `payRequest` pays a request and returns a receipt; `ringpay:e2e`).
-- [ ] Checkout demo: request → payment → ringd webhook → order marked paid.
+- [x] Checkout demo: request → payment → ringd webhook → order marked paid ([apps/checkout-demo](../apps/checkout-demo): Next.js shop + NestJS/Fastify API; run through in the browser on localnet).
 - [ ] Payroll `plan` (CSV, registry check, batching) and `run` (concurrent, resumable).
 - [ ] Payroll receipts + audit bundle.
 - [ ] ringd auto-merge.
