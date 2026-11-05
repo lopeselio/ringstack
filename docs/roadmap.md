@@ -40,7 +40,7 @@ spec/
 - [x] Receipt format spec + encode/decode/issue/open in `core`.
 - [x] Static verifier app (`apps/verifier`): registry lookup verifies outputs automatically; `?to=` marks the payee.
 - [x] ringd: watch → decrypt → SQLite → print/log events (`apps/ringd`, TypeScript; read-only key file, `ringd e2e`).
-- [ ] ringd: HMAC webhooks with retry + idempotency.
+- [x] ringd: HMAC webhooks with retry + idempotency (`ringd-id`, `@ringstack/ringd-client` `verifyWebhook`).
 
 ## Milestone 2: RingPay + payroll
 - [ ] `ringpay:` URI spec + parser; memo schema with `order`.
