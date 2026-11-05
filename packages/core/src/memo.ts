@@ -10,11 +10,16 @@
  * re-encrypts the prepared outputs with memos attached. Memos do not change
  * the commitments, so the prepared transfer finalizes unchanged.
  *
- * Privacy: a memo makes its slot's ciphertext longer. Memos are fixed-width
- * and every real output gets one (zero-filled if the caller set none), so
- * real slots stay the same length as each other. Random padding slots
- * (`ConfidentialTransfer` with fewer outputs than the shape) are still sized
- * for an empty plaintext and remain distinguishable.
+ * Privacy: a memo makes its slot's ciphertext longer, so an observer can tell
+ * which output carries one (and its fixed width, `MEMO_LENGTH`). Outputs
+ * without a memo are deliberately left without one: with SDK 0.6.0 any UTXO
+ * whose data is non-empty (a memo included) is skipped by the SDK's default
+ * transfer, withdrawal and merge selection (`isPlainUtxo`), so padding change
+ * with a zero memo would strand the sender's change for SDK wallets.
+ *
+ * Spendability: received memo UTXOs are skipped by those SDK rails too. They
+ * spend fine through the lower-level `ConfidentialTransfer` builder, which
+ * `RingSession.transfer` falls back to (see session.ts).
  */
 import type { ShieldedAddress, ShieldedKeypair } from "@heliuslabs/zolana";
 import { randomSalt } from "@heliuslabs/zolana/keypair";
@@ -63,8 +68,7 @@ function sameAddress(a: ShieldedAddress, b: ShieldedAddress): boolean {
 
 /**
  * Like `transfer.sign(keypair, assets)`, but each output owned by a listed
- * recipient carries that memo. Every other real output (change included)
- * carries a zero memo of the same width.
+ * recipient carries that memo. Other outputs (change included) carry none.
  */
 export function signTransferWithMemos(
   transfer: ConfidentialTransfer,
@@ -72,17 +76,12 @@ export function signTransferWithMemos(
   assets: AssetRegistry,
   memos: readonly OutputMemo[],
 ): SppProofInputs {
-  const width = memos[0]?.memo.length ?? MEMO_LENGTH;
-  if (memos.some((m) => m.memo.length !== width)) {
-    throw new RangeError("all memos must have the same length");
-  }
-
   const prepared = transfer.prepare();
   const outputs = prepared.outputs.map((output) => {
     const owner = output.ownerAddress;
     if (output.isDummy() || owner === undefined) return output;
-    const memo = memos.find((m) => sameAddress(m.recipient, owner))?.memo ?? new Uint8Array(width);
-    return output.withMemo(memo);
+    const memo = memos.find((m) => sameAddress(m.recipient, owner))?.memo;
+    return memo === undefined ? output : output.withMemo(memo);
   });
   const owners = prepared.outputs.flatMap((o) => (o.isDummy() || o.ownerAddress === undefined ? [] : [o.ownerAddress]));
   if (memos.some((m) => !owners.some((owner) => sameAddress(m.recipient, owner)))) {
