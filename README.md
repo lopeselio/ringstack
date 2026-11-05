@@ -67,4 +67,4 @@ pnpm --filter @ringstack/docs dev      # http://localhost:4321
 
 ## License
 
-TBD (intended: Apache-2.0, matching zolana).
+[Apache License 2.0](LICENSE), matching [zolana](https://github.com/helius-labs/zolana).
