@@ -24,6 +24,12 @@ import {
   type OpenedReceipt,
 } from "@ringstack/core/receipt-open";
 import { decodeMemo } from "@ringstack/core/memo";
+import {
+  PaymentProofError,
+  decodePaymentProof,
+  verifyPaymentProof,
+  type VerifiedPayment,
+} from "@ringstack/core/payment-proof";
 
 export interface Endpoints {
   readonly rpcUrl: string;
@@ -178,4 +184,77 @@ async function formatOutput(
   } catch {
     return { amount: amount.toString(), symbol: `${short} units` };
   }
+}
+
+// --- payment proofs (ringproof1:) ---------------------------------------------
+
+export interface VerifiedProof {
+  readonly cluster: Cluster;
+  readonly endpoints: Endpoints;
+  readonly signature: string;
+  readonly slot: bigint;
+  readonly outputSlot: number;
+  readonly owner: Address;
+  /** The payee's current registry record carries the proof's viewing key. */
+  readonly registered: boolean;
+  readonly amount: string;
+  readonly symbol: string;
+  readonly memo?: string;
+}
+
+/** Verify a payee's proof of one output (spec/payment-proof.md). */
+export async function verifyProofLink(
+  link: string,
+  options: Readonly<{ params?: URLSearchParams }> = {},
+): Promise<VerifiedProof> {
+  let proof;
+  try {
+    proof = decodePaymentProof(link.trim());
+  } catch (e) {
+    throw new VerifyError(`This isn't a valid payment proof: ${(e as Error).message}.`);
+  }
+  const endpoints = endpointsFor(proof.cluster, options.params ?? new URLSearchParams());
+  const client = await createZolanaClient({ solanaRpcUrl: endpoints.rpcUrl, indexerUrl: endpoints.indexerUrl });
+  let tx;
+  try {
+    tx = await fetchShieldedTransaction(client, proof.signature);
+  } catch (e) {
+    throw new VerifyError(`Couldn't load the transaction from the indexer at ${endpoints.indexerUrl}: ${(e as Error).message}`);
+  }
+
+  let verified: VerifiedPayment;
+  try {
+    try {
+      verified = verifyPaymentProof(proof, tx);
+    } catch (e) {
+      if (!(e instanceof PaymentProofError && e.code === "UNKNOWN_ASSET")) throw e;
+      const scratch = new Wallet({ identity: ShieldedKeypair.generate().shieldedAddress() });
+      await backfillAssetRegistry(scratch, client);
+      verified = verifyPaymentProof(proof, tx, { assets: scratch.registry });
+    }
+  } catch (e) {
+    throw new VerifyError(
+      e instanceof PaymentProofError && e.code === "COMMITMENT_MISMATCH"
+        ? "This proof doesn't match the chain. Don't accept it."
+        : `This proof doesn't check out: ${(e as Error).message}`,
+    );
+  }
+
+  const record = await resolveRegisteredAddress({ rpc: client, owner: verified.owner }).catch(() => undefined);
+  const mine = proof.recipient.viewingPublicKey.toBytes();
+  const registered = record !== undefined && record.address.viewingPublicKey.toBytes().every((b, i) => b === mine[i]);
+  const { amount, symbol } = await formatOutput(client, verified.mint, verified.amount);
+  const memo = decodeMemo(verified.memo);
+  return {
+    cluster: proof.cluster,
+    endpoints,
+    signature: verified.signature,
+    slot: verified.slot,
+    outputSlot: verified.outputSlot,
+    owner: verified.owner,
+    registered,
+    amount,
+    symbol,
+    ...(memo === undefined ? {} : { memo }),
+  };
 }

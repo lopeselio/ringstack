@@ -6,7 +6,7 @@ import "./style.css";
 
 import { isAddress, type Address } from "@solana/kit";
 
-import type { VerifiedOutput, VerifyResult } from "./verify.ts";
+import type { VerifiedOutput, VerifiedProof, VerifyResult } from "./verify.ts";
 
 const form = document.querySelector<HTMLFormElement>("#check")!;
 const linkInput = document.querySelector<HTMLTextAreaElement>("#link")!;
@@ -41,10 +41,56 @@ const STAMP: Record<VerifiedOutput["commitment"], { text: string; note: string }
   },
 };
 
-function explorerUrl(r: VerifyResult): string {
-  const base = `https://explorer.solana.com/tx/${r.receipt.signature}`;
-  if (r.receipt.cluster === "devnet") return `${base}?cluster=devnet`;
+function explorerUrl(r: { cluster: string; signature: string; endpoints: { rpcUrl: string } }): string {
+  const base = `https://explorer.solana.com/tx/${r.signature}`;
+  if (r.cluster === "devnet") return `${base}?cluster=devnet`;
   return `${base}?cluster=custom&customUrl=${encodeURIComponent(r.endpoints.rpcUrl)}`;
+}
+
+function txMeta(cluster: string, slot: bigint, link: HTMLElement): HTMLElement {
+  return h(
+    "dl",
+    { class: "meta" },
+    h("dt", {}, "Network"),
+    h("dd", {}, cluster),
+    h("dt", {}, "Slot"),
+    h("dd", {}, slot.toString()),
+    h("dt", {}, "Transaction"),
+    h("dd", {}, link),
+  );
+}
+
+function renderProof(p: VerifiedProof): HTMLElement {
+  return h(
+    "article",
+    { class: "slip", "aria-label": "Payment proof" },
+    h("h2", {}, "Proof of payment"),
+    txMeta(
+      p.cluster,
+      p.slot,
+      h("a", { href: explorerUrl(p), target: "_blank", rel: "noreferrer noopener" }, short(p.signature, 6)),
+    ),
+    h(
+      "ol",
+      { class: "lines" },
+      h(
+        "li",
+        { class: "line verified" },
+        h("p", { class: "to" }, h("span", { title: p.owner }, `Paid to ${short(p.owner, 6)}`)),
+        h("p", { class: "amount" }, p.amount, " ", h("span", { class: "unit" }, p.symbol)),
+        p.memo === undefined ? undefined : h("p", { class: "memo" }, "Memo ", h("q", {}, p.memo)),
+        h("p", { class: "stamp", title: STAMP.verified.note }, STAMP.verified.text),
+        p.registered
+          ? undefined
+          : h("p", { class: "note" }, "The payee's current registry entry has different keys, so who they are can't be confirmed from the registry."),
+      ),
+    ),
+    h(
+      "p",
+      { class: "footer" },
+      "The payee proved this one output. Nothing else in the transaction, including anyone else paid in it, is revealed.",
+    ),
+  );
 }
 
 function renderOutput(o: VerifiedOutput, you: Address | undefined): HTMLElement {
@@ -72,18 +118,13 @@ function renderSlip(r: VerifyResult, you: Address | undefined): HTMLElement {
     "article",
     { class: "slip", "aria-label": "Receipt" },
     h("h2", {}, "Private payment"),
-    h(
-      "dl",
-      { class: "meta" },
-      h("dt", {}, "Network"),
-      h("dd", {}, r.receipt.cluster),
-      h("dt", {}, "Slot"),
-      h("dd", {}, r.slot.toString()),
-      h("dt", {}, "Transaction"),
+    txMeta(
+      r.receipt.cluster,
+      r.slot,
       h(
-        "dd",
-        {},
-        h("a", { href: explorerUrl(r), target: "_blank", rel: "noreferrer noopener" }, short(r.receipt.signature, 6)),
+        "a",
+        { href: explorerUrl({ cluster: r.receipt.cluster, signature: r.receipt.signature, endpoints: r.endpoints }), target: "_blank", rel: "noreferrer noopener" },
+        short(r.receipt.signature, 6),
       ),
     ),
     r.outputs.length === 0
@@ -105,7 +146,7 @@ function showError(message: string) {
 }
 
 async function check(link: string, owner: string) {
-  if (link.trim() === "") return showError("Paste a receipt that starts with ringrcpt1:.");
+  if (link.trim() === "") return showError("Paste a receipt (ringrcpt1:…) or a payment proof (ringproof1:…).");
   const you = owner.trim() === "" ? undefined : owner.trim();
   if (you !== undefined && !isAddress(you)) return showError("That isn't a Solana address. Check it and try again.");
 
@@ -114,16 +155,21 @@ async function check(link: string, owner: string) {
   result.replaceChildren(h("p", { class: "pending" }, "Loading the transaction and decrypting it…"));
   try {
     // The SDK (hasher WASM included) is most of the bundle; load it on first use.
-    const { verifyReceipt } = await import("./verify.ts");
-    const r = await verifyReceipt(link, { params, ...(you === undefined ? {} : { owners: [you] }) });
+    const { verifyProofLink, verifyReceipt } = await import("./verify.ts");
+    if (link.trim().startsWith("ringproof1:")) {
+      const p = await verifyProofLink(link, { params });
+      result.replaceChildren(renderProof(p));
+    } else {
+      const r = await verifyReceipt(link, { params, ...(you === undefined ? {} : { owners: [you] }) });
+      result.replaceChildren(renderSlip(r, you));
+    }
     history.replaceState(null, "", `${location.pathname}${location.search}#${link.trim()}`);
-    result.replaceChildren(renderSlip(r, you));
   } catch (e) {
     const err = e as Error;
     showError(err.name === "VerifyError" ? err.message : `Something went wrong: ${err.message}`);
   } finally {
     submit.disabled = false;
-    submit.textContent = "Check receipt";
+    submit.textContent = "Check payment";
   }
 }
 
@@ -136,7 +182,7 @@ form.addEventListener("submit", (e) => {
 const fromHash = decodeURIComponent(location.hash.slice(1));
 const to = params.get("to");
 if (to !== null) ownerInput.value = to;
-if (fromHash.startsWith("ringrcpt1:")) {
+if (fromHash.startsWith("ringrcpt1:") || fromHash.startsWith("ringproof1:")) {
   linkInput.value = fromHash;
   void check(fromHash, ownerInput.value);
 }
