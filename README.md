@@ -1,4 +1,4 @@
-# helius-privacy
+# ringstack
 
 Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (Solana Rings, powered by [zolana](https://github.com/helius-labs/zolana)).
 
