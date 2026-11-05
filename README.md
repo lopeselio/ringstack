@@ -54,6 +54,7 @@ pnpm --filter @ringstack/core ringpay:e2e   # pay a ringpay: request, verify the
 - [Receipt spec](spec/receipt.md)
 - [RingPay payment request URI spec](spec/ringpay-uri.md)
 - [Checkout demo](apps/checkout-demo/README.md): Next.js shop + NestJS API + ringd, end to end on localnet
+- [Private payroll CLI](apps/payroll/README.md)
 
 ## License
 
