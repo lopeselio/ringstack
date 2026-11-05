@@ -1,0 +1,174 @@
+#!/usr/bin/env -S node --import tsx
+/**
+ * Private payroll.
+ *
+ *   payroll plan  --csv payroll.csv --keypair treasury.json [--mint <mint>] [--out plan.json] [--max-per-batch 15]
+ *   payroll run   --plan plan.json --keypair treasury.json [--concurrency 2]
+ *   payroll status --plan plan.json
+ *   payroll split --keypair treasury.json --parts <n> [--mint <mint>]
+ *
+ * Network from ZOLANA_* env (see .env.example). Run state lives next to the
+ * plan as <plan>.state.json.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { parseArgs } from "node:util";
+
+import { SOL_MINT, createZolanaClient, fetchAssetMetadata, initializePoseidon } from "@heliuslabs/zolana";
+import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
+import { RingSession, clientConfigFromEnv, loadShieldedKeypair, spendableUtxos } from "@ringstack/core";
+import type { Cluster } from "@ringstack/core/receipt";
+import { address } from "@solana/kit";
+
+import { parsePayrollCsv } from "./csv.ts";
+import { buildPlan, loadPlan, type Plan } from "./plan.ts";
+import { runPlan } from "./run.ts";
+import { loadRunState } from "./state.ts";
+
+const USAGE = `usage:
+  payroll plan   --csv payroll.csv --keypair treasury.json [--mint <mint>] [--out plan.json] [--max-per-batch 15]
+  payroll run    --plan plan.json --keypair treasury.json [--concurrency 2]
+  payroll status --plan plan.json
+  payroll split  --keypair treasury.json --parts <n> [--mint <mint>]`;
+
+const cluster = (process.env["ZOLANA_NETWORK"]?.trim() || "localnet") as Cluster;
+
+async function openSession(keypairPath: string): Promise<RingSession> {
+  await initializePoseidon();
+  const client = await createZolanaClient(clientConfigFromEnv());
+  return RingSession.open(client, await loadShieldedKeypair(keypairPath));
+}
+
+function ui(base: string | bigint, decimals: number): string {
+  const s = BigInt(base).toString().padStart(decimals + 1, "0");
+  const whole = s.slice(0, s.length - decimals);
+  const frac = s.slice(s.length - decimals).replace(/0+$/, "");
+  return frac ? `${whole}.${frac}` : whole;
+}
+
+async function plan(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: {
+      csv: { type: "string" },
+      keypair: { type: "string" },
+      mint: { type: "string", default: SOL_MINT },
+      out: { type: "string", default: "plan.json" },
+      "max-per-batch": { type: "string", default: "15" },
+    },
+  });
+  if (!values.csv || !values.keypair) throw new Error(USAGE);
+  const session = await openSession(values.keypair);
+  const mint = address(values.mint);
+  const decimals = mint === SOL_MINT ? 9 : (await fetchAssetMetadata(session.client, mint)).decimals;
+  const csvText = readFileSync(values.csv, "utf8");
+
+  const built = await buildPlan({
+    rows: parsePayrollCsv(csvText),
+    csvText,
+    cluster,
+    treasury: session.owner,
+    mint,
+    decimals,
+    maxPerBatch: Number(values["max-per-batch"]),
+    isRegistered: (owner) => isWalletRegistered({ rpc: session.client, owner: address(owner) }),
+  });
+
+  // Pre-flight.
+  const notes: string[] = [];
+  const utxos = spendableUtxos(session.wallet, mint);
+  const balance = utxos.reduce((s, e) => s + e.utxo.amount, 0n);
+  const total = BigInt(built.totals.amount);
+  if (balance < total) {
+    notes.push(`Treasury holds ${ui(balance, decimals)}, the plan pays ${ui(total, decimals)}: deposit ${ui(total - balance, decimals)} more before running.`);
+  }
+  if (built.batches.length > 1 && utxos.length < built.batches.length) {
+    notes.push(
+      `Treasury has ${utxos.length} spendable UTXO(s) for ${built.batches.length} batches, so batches will run one after another. ` +
+        `To run them concurrently: payroll split --keypair <treasury> --parts ${built.batches.length}`,
+    );
+  }
+  const withMemo = built.batches.flatMap((b) => b.payments).filter((p) => p.memo !== undefined).length;
+  if (withMemo > 0) {
+    notes.push(
+      `${withMemo} payment(s) carry a memo. Until helius-labs/zolana#543 is fixed, the SDK's built-in transfer, withdraw and merge skip memo payments; payees need a wallet that spends them through the lower-level builder.`,
+    );
+  }
+  if (built.skipped.length > 0) {
+    notes.push(`${built.skipped.length} payee(s) are not registered for private payments and were skipped.`);
+  }
+  const result: Plan = { ...built, notes };
+  writeFileSync(values.out, `${JSON.stringify(result, null, 2)}\n`);
+
+  console.log(`plan ${result.planId} → ${values.out}`);
+  console.log(`  ${result.totals.payees} payees, ${ui(result.totals.amount, decimals)} total, ${result.totals.batches} batch(es) on ${cluster}`);
+  for (const b of result.batches) console.log(`  ${b.id}: ${b.payments.length} payees, ${ui(b.total, decimals)}`);
+  for (const s of result.skipped) console.log(`  skipped line ${s.line}: ${s.recipient} (${s.reason})`);
+  for (const n of notes) console.log(`  note: ${n}`);
+  if (balance < total) process.exitCode = 1;
+}
+
+async function run(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: {
+      plan: { type: "string", default: "plan.json" },
+      keypair: { type: "string" },
+      concurrency: { type: "string", default: "2" },
+    },
+  });
+  if (!values.keypair) throw new Error(USAGE);
+  const p = loadPlan(readFileSync(values.plan, "utf8"));
+  if (p.cluster !== cluster) throw new Error(`plan is for ${p.cluster}; ZOLANA_NETWORK is ${cluster}`);
+  const session = await openSession(values.keypair);
+  const state = await runPlan({
+    session,
+    plan: p,
+    statePath: `${values.plan.replace(/\.json$/, "")}.state.json`,
+    concurrency: Number(values.concurrency),
+    log: (msg, fields) => console.log(JSON.stringify({ msg, ...fields })),
+  });
+  const done = Object.values(state.batches).filter((b) => b.status === "confirmed").length;
+  console.log(`${done}/${p.batches.length} batches confirmed`);
+}
+
+function status(args: string[]) {
+  const { values } = parseArgs({ args, options: { plan: { type: "string", default: "plan.json" } } });
+  const p = loadPlan(readFileSync(values.plan, "utf8"));
+  const state = loadRunState(
+    `${values.plan.replace(/\.json$/, "")}.state.json`,
+    p.planId,
+    p.batches.map((b) => b.id),
+  );
+  for (const b of p.batches) {
+    const s = state.batches[b.id]!;
+    console.log(
+      `${b.id}  ${s.status.padEnd(9)}  ${b.payments.length} payees  ${ui(b.total, p.decimals)}  ${s.signature ?? ""}${s.lastError ? `  (${s.lastError})` : ""}`,
+    );
+  }
+}
+
+async function split(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: { keypair: { type: "string" }, parts: { type: "string" }, mint: { type: "string", default: SOL_MINT } },
+  });
+  if (!values.keypair || !values.parts) throw new Error(USAGE);
+  const session = await openSession(values.keypair);
+  const tx = await session.split(Number(values.parts), { asset: address(values.mint) });
+  console.log(`split into ${values.parts}: ${tx.signature}`);
+}
+
+const [cmd, ...rest] = process.argv.slice(2);
+try {
+  if (cmd === "plan") await plan(rest);
+  else if (cmd === "run") await run(rest);
+  else if (cmd === "status") status(rest);
+  else if (cmd === "split") await split(rest);
+  else {
+    console.error(USAGE);
+    process.exitCode = 2;
+  }
+} catch (err) {
+  console.error((err as Error).message);
+  process.exitCode = 1;
+}
