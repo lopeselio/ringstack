@@ -67,6 +67,26 @@ key_file = "keys/shop.json"
   });
 });
 
+describe("merge config", () => {
+  it("parses per-wallet thresholds and the fee payer", () => {
+    const c = parseConfig(
+      `[[wallet]]\nname = "shop"\nkey_file = "k"\nmerge_threshold = 30\n[merge]\nfee_payer = "fee.json"\nmax_inputs = 12\n`,
+      "/srv",
+      {},
+    );
+    expect(c.wallets[0]).toEqual({ name: "shop", keyFile: "/srv/k", mergeThreshold: 30 });
+    expect(c.merge).toEqual({ feePayer: "/srv/fee.json", maxInputs: 12 });
+  });
+
+  it("requires a fee payer when any wallet merges, and bounds the numbers", () => {
+    const w = (extra: string) => `[[wallet]]\nname = "shop"\nkey_file = "k"\n${extra}`;
+    expect(() => parseConfig(w("merge_threshold = 30\n"), "/", {})).toThrow(/fee_payer is required/);
+    expect(() => parseConfig(w("merge_threshold = 1\n"), "/", {})).toThrow(/merge_threshold/);
+    expect(() => parseConfig(w(`[merge]\nfee_payer = "f"\nmax_inputs = 25\n`), "/", {})).toThrow(/max_inputs/);
+    expect(parseConfig(w(""), "/", {}).merge).toBeUndefined();
+  });
+});
+
 describe("events", () => {
   it("maps history rows to event types", () => {
     expect(eventType({ kind: "privateTransfer", direction: "inbound" })).toBe("payment.received");
