@@ -42,5 +42,7 @@ jobs:
       - run: pnpm --filter @ringstack/core e2e
       - run: pnpm --filter @ringstack/ringd e2e
       - run: pnpm --filter @ringstack/payroll e2e
+      - run: pnpm --filter @ringstack/paywall-demo e2e
+      - run: pnpm --filter @ringstack/agent-mcp smoke
       - if: always()
         run: rm -f .devnet/funder.json
