@@ -28,6 +28,8 @@ export default defineConfig({
             "tools/verifier",
             "tools/checkout-demo",
             "tools/paywall-demo",
+            "tools/leakscan",
+            "tools/leak-report",
           ],
         },
         {

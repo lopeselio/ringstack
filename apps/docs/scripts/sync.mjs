@@ -26,6 +26,8 @@ const PAGES = [
   ["packages/paywall/README.md", "tools/paywall", "Agent payments (HTTP 402)", "Pay-per-call APIs with private payments."],
   ["apps/agent-mcp/README.md", "tools/agent-mcp", "Agent wallet (MCP)", "A private wallet for AI agents, with spend limits."],
   ["apps/paywall-demo/README.md", "tools/paywall-demo", "Paid API demo", "A pay-per-call forecast API behind the paywall."],
+  ["packages/leakscan/README.md", "tools/leakscan", "Leak analyzer", "Score how linkable public pool activity is."],
+  ["apps/leaks/README.md", "tools/leak-report", "Pool leak report", "The daily aggregate report, and how it's built."],
   ["apps/checkout-demo/README.md", "tools/checkout-demo", "Checkout demo", "Next.js shop, NestJS API and ringd, end to end."],
   ["docs/platform-notes.md", "background/platform-notes", "Platform notes", "What Helius Privacy provides and its constraints."],
   ["docs/spikes/m0-sdk-findings.md", "background/sdk-findings", "SDK findings", "What we learned building on the zolana SDK."],
