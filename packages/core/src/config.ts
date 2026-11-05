@@ -71,12 +71,18 @@ export function clientConfig({ network, apiKey, overrides = {} }: ConfigInput): 
   });
 }
 
-/** Read the config from ZOLANA_* environment variables (see .env.example). */
-export function clientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ZolanaClientConfig {
+/** ZOLANA_NETWORK, defaulting to localnet. */
+export function networkFromEnv(env: NodeJS.ProcessEnv = process.env): Network {
   const network = (env["ZOLANA_NETWORK"]?.trim() || "localnet") as Network;
   if (network !== "localnet" && network !== "devnet") {
     throw new Error(`ZOLANA_NETWORK must be localnet or devnet, got ${network}`);
   }
+  return network;
+}
+
+/** Read the config from ZOLANA_* environment variables (see .env.example). */
+export function clientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ZolanaClientConfig {
+  const network = networkFromEnv(env);
   return clientConfig({
     network,
     apiKey: env["API_KEY"]?.trim() || undefined,
