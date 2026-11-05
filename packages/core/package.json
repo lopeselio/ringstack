@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./receipt": "./src/receipt.ts",
     "./receipt-open": "./src/receipt-open.ts",
-    "./memo": "./src/memo.ts"
+    "./memo": "./src/memo.ts",
+    "./ringpay": "./src/ringpay.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -16,8 +17,9 @@
     "receipt:e2e": "tsx scripts/receipt-e2e.ts",
     "memo:e2e": "tsx scripts/memo-e2e.ts",
     "session:e2e": "tsx scripts/session-e2e.ts",
-    "e2e": "tsx scripts/smoke.ts && tsx scripts/receipt-e2e.ts && tsx scripts/memo-e2e.ts && tsx scripts/session-e2e.ts",
-    "receipt:demo": "tsx scripts/receipt-demo.ts"
+    "e2e": "tsx scripts/smoke.ts && tsx scripts/receipt-e2e.ts && tsx scripts/memo-e2e.ts && tsx scripts/session-e2e.ts && tsx scripts/ringpay-e2e.ts",
+    "receipt:demo": "tsx scripts/receipt-demo.ts",
+    "ringpay:e2e": "tsx scripts/ringpay-e2e.ts"
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.6.0-alpha",
