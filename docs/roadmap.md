@@ -38,7 +38,7 @@ spec/
 
 ## Milestone 1: Receipts + ringd MVP
 - [x] Receipt format spec + encode/decode/issue/open in `core`.
-- [ ] Static verifier app.
+- [x] Static verifier app (`apps/verifier`): registry lookup verifies outputs automatically; `?to=` marks the payee.
 - [ ] ringd: watch → decrypt → SQLite → print/log events.
 - [ ] ringd: HMAC webhooks with retry + idempotency.
 
