@@ -43,6 +43,7 @@ jobs:
       - run: ./scripts/localnet.sh
       - run: ./scripts/wait-localnet.sh 300
       - run: pnpm --filter @ringstack/core e2e
+      - run: pnpm --filter @ringstack/ringd e2e
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
