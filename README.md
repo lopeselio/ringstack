@@ -6,14 +6,15 @@ Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (S
 
 > Helius Privacy is **beta and devnet-only**. Programs are under audit. Nothing here is production-ready.
 
-## Selected builds
+## Projects
 
-| # | Project | What it is | Difficulty |
-|---|---------|-----------|------------|
-| 1 | [RingPay](docs/ideas/01-ringpay.md) | Private payment requests + verifiable receipts | Client-only |
-| 2 | [ringd](docs/ideas/02-ringd.md) | Self-hosted sync daemon with private webhooks | Client-only |
-| 4 | [Private payroll CLI](docs/ideas/04-payroll-cli.md) | CSV → batched private transfers + audit bundle | Client-only |
-| 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Circuit gadget library + template for SPP ZK programs | ZK program (hard) |
+| # | Project | What it is | Status |
+|---|---------|-----------|--------|
+| 1 | [RingPay](docs/ideas/01-ringpay.md) | Private payment requests, receipts and payee proofs ([verifier](https://lopeselio.github.io/ringstack/verify/)) | Built, devnet |
+| 2 | [ringd](apps/ringd) | Self-hosted payment watcher with signed webhooks and auto-merge | Built, devnet |
+| 4 | [Private payroll](apps/payroll) | CSV → batched private payouts, audit bundle, payee proofs | Built, devnet |
+| 3 | [Agent payments](packages/paywall) | HTTP 402 paywall + [MCP agent wallet](apps/agent-mcp) with spend limits | Built, devnet |
+| 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Circuit gadget library + template for SPP ZK programs | Not started |
 
 Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 
@@ -21,7 +22,6 @@ Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 
 | # | Idea |
 |---|------|
-| 3 | [Private agent payments (x402-style)](docs/ideas/03-agent-payments.md) |
 | 5 | [Privacy leak analyzer](docs/ideas/05-leak-analyzer.md) |
 | 6 | [Derivation-signature phishing guard](docs/ideas/06-derivation-guard.md) |
 | 8 | [Sealed-bid auctions & milestone escrow](docs/ideas/08-sealed-bid-milestone-escrow.md) |
@@ -43,6 +43,8 @@ export ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json
 pnpm --filter @ringstack/core e2e      # smoke, receipts, memos, wallet session, RingPay
 pnpm --filter @ringstack/ringd e2e     # events, signed webhooks, auto-merge
 pnpm --filter @ringstack/payroll e2e   # batches, resume, audit bundle, per-payee proof
+pnpm --filter @ringstack/paywall-demo e2e   # HTTP 402 private payments with spend limits
+pnpm --filter @ringstack/agent-mcp smoke    # the MCP agent wallet over stdio
 ```
 
 See [docs/devnet.md](docs/devnet.md) for setup, results and the trust model, and [docs/privacy.md](docs/privacy.md) for **privacy limits**. There is no local stack for zolana 0.8 yet: Helius publishes no 0.8 binaries, and the `scripts/` local network installs v0.6.0-alpha, which the 0.8 SDK refuses (details in the same doc).

@@ -40,6 +40,8 @@ CI runs the same three suites nightly and on demand (`.github/workflows/devnet.y
 | core `ringpay:e2e` | 49 s | `ringpay:` request paid with `payRequest`, verified receipt, merchant reads the order; four refusals move no funds |
 | ringd `e2e` | 138 s | backfill, live memo events, restart without duplicates, `payment.sent` from read-only keys, signed webhooks with retry and failure, auto-merge paid by a separate fee payer |
 | payroll `e2e` | 258 s | 17 payees in concurrent batches, crash and resume without double payment, expired-attempt retry, exact balances, audit bundle, per-payee proof that cannot open a co-worker's output |
+| paywall-demo `e2e` | ~90 s | 402 challenge, private payment served, replay and cross-route refused, per-call/host/daily limits refuse without paying, vendor receives exactly the ledger total |
+| agent-mcp `smoke` | ~60 s | MCP client over stdio: tools listed, balance, paid call, daily budget refusal, ledger |
 | checkout demo | manual | order → private payment → ringd webhook → order marked paid, in the browser |
 | verifier page | manual | devnet receipt opened with no API key; both outputs matched the chain |
 

@@ -1,6 +1,8 @@
 # 3. Private agent payments (x402-style)
 
-**Status:** Backlog · **Type:** Client-only · **Builds on:** [RingPay receipts](01-ringpay.md)
+**Status:** Built (devnet): [`@ringstack/paywall`](../../packages/paywall), [agent MCP server](../../apps/agent-mcp), [demo API](../../apps/paywall-demo) · **Type:** Client-only · **Builds on:** [RingPay](01-ringpay.md)
+
+> **Design change while building:** the agent retries with only the transaction **signature**, not a receipt. The API is the payee and decrypts its own output with its viewing key, so the agent never discloses its change (its remaining balance) to the API.
 
 ## Problem
 AI agents paying for APIs onchain leak their strategy, budget, and vendor list. Helius lists "agentic commerce" as a target use case.

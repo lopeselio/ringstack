@@ -55,6 +55,10 @@ spec/
 - [x] Docs site ([apps/docs](../apps/docs), Astro Starlight, generated from the repo docs), live at https://lopeselio.github.io/ringstack/.
 - [ ] Demo video.
 
+## Backlog builds
+- [x] #3 Private agent payments: HTTP 402 paywall (`@ringstack/paywall`), MCP agent wallet with spend limits, demo API; verified on devnet.
+- [ ] #5 Privacy leak analyzer.
+
 ## Track Z: zk-gadgets (parallel, longer)
 - [ ] Z0: Build and run upstream `escrow-program` locally (Go ≥1.27.1, `cargo build-sbf`).
 - [ ] Z1: Extract `utxo` + `conservation` gadgets; upstream escrow tests still pass.
