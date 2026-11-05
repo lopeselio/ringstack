@@ -11,11 +11,10 @@
 import { parseArgs } from "node:util";
 
 import { initializePoseidon } from "@heliuslabs/zolana";
-import { loadShieldedKeypair } from "@ringstack/core";
+import { loadShieldedKeypair, writeKeyFile } from "@ringstack/core";
 
 import { loadConfig } from "./config.ts";
 import { Daemon, jsonLogger } from "./daemon.ts";
-import { writeKeyFile } from "./keyfile.ts";
 import { RingdStore } from "./store.ts";
 
 const USAGE = `usage:

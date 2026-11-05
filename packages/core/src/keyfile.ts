@@ -1,5 +1,5 @@
 /**
- * ringd key files hold the read-only roles of one shielded identity: the
+ * Read-only key files (used by ringd and the paywall) hold the read-only roles of one shielded identity: the
  * viewing key (decrypts outputs) and the nullifier key (detects spends), plus
  * the public shielded address. Never the Ed25519 spending key, so a stolen key
  * file can read the wallet but not move funds.

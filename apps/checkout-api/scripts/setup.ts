@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { RingSession, clientConfigFromEnv, fund, loadShieldedKeypair, networkFromEnv } from "@ringstack/core";
+import { RingSession, clientConfigFromEnv, exportKeyFile, fund, loadShieldedKeypair, networkFromEnv } from "@ringstack/core";
 
 const root = resolve(import.meta.dirname, "..");
 const demo = join(root, ".demo");
@@ -54,7 +54,6 @@ console.log(`merchant  ${merchant.owner} (registered)`);
 console.log(`customer  ${customer.owner} (registered, 0.05 SOL private balance)`);
 
 // ringd holds only the merchant's viewing + nullifier keys.
-const { exportKeyFile } = await import("../../ringd/src/keyfile.ts");
 writeFileSync(join(demo, "merchant.ringd-key.json"), exportKeyFile(merchant.keypair), { mode: 0o600 });
 
 const secret = randomBytes(32).toString("hex");

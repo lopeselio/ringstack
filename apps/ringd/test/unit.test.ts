@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { parseConfig } from "../src/config.ts";
 import { eventType, type RingdEvent } from "../src/events.ts";
-import { exportKeyFile, parseKeyFile } from "../src/keyfile.ts";
+import { exportKeyFile, parseKeyFile } from "@ringstack/core";
 import { RingdStore } from "../src/store.ts";
 
 beforeAll(async () => {

@@ -25,12 +25,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { RingSession, clientConfigFromEnv, encodeMemo, fund, loadShieldedKeypair } from "@ringstack/core";
+import { RingSession, clientConfigFromEnv, encodeMemo, exportKeyFile, fund, loadShieldedKeypair } from "@ringstack/core";
 import { verifyWebhook, type RingdEvent } from "@ringstack/ringd-client";
 
 import type { DeliveryConfig, WebhookConfig } from "../src/config.ts";
 import { Daemon, type Logger } from "../src/daemon.ts";
-import { exportKeyFile } from "../src/keyfile.ts";
 import { RingdStore, type StoredEvent } from "../src/store.ts";
 
 function check(cond: boolean, msg: string): asserts cond {

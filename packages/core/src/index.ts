@@ -11,3 +11,4 @@ export * from "./utxos.ts";
 export * from "./merge.ts";
 export * from "./payment-proof.ts";
 export * from "./fund.ts";
+export * from "./keyfile.ts";

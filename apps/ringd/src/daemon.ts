@@ -24,7 +24,15 @@ import {
 
 import { bytes31, bytes32 } from "@heliuslabs/zolana/keypair";
 import { fetchUserRecord } from "@heliuslabs/zolana/wallet";
-import { buildMerge, loadShieldedKeypair, ownerAddress, spendableUtxos, submitTransaction } from "@ringstack/core";
+import {
+  buildMerge,
+  loadShieldedKeypair,
+  ownerAddress,
+  readKeyFile,
+  spendableUtxos,
+  submitTransaction,
+  type WatchKeys,
+} from "@ringstack/core";
 import type { Address, TransactionPartialSigner } from "@solana/kit";
 
 import {
@@ -35,7 +43,6 @@ import {
   type WebhookConfig,
 } from "./config.ts";
 import { newEvents, type RingdEvent } from "./events.ts";
-import { readKeyFile, type WatchKeys } from "./keyfile.ts";
 import type { RingdStore, StoredEvent } from "./store.ts";
 import { Dispatcher, routeFor, type DispatchResult } from "./webhooks.ts";
 
