@@ -51,7 +51,7 @@ spec/
 - [x] ringd auto-merge without the spending key (key file + separate fee payer; memo UTXOs included).
 
 ## Milestone 3: Devnet release
-- [ ] Run everything against devnet; document known privacy limits (public sender/recipient in confidential rings; public deposit/withdraw edges).
+- [x] Run everything against devnet; document known privacy limits ([docs/devnet.md](devnet.md); upgraded to zolana 0.8, nightly devnet CI).
 - [ ] Docs site / READMEs, demo video.
 
 ## Track Z: zk-gadgets (parallel, longer)
@@ -65,4 +65,5 @@ spec/
 ## Cross-cutting risks
 - Alpha API churn: track `helius-labs/zolana` releases; isolate SDK calls behind `core`.
 - Devnet-only: no mainnet claims anywhere.
+- No local stack for zolana 0.8 until Helius publishes binaries; integration tests run on devnet.
 - Prover is a remote TEE by default; note the trust assumption and adopt local proving when it lands upstream.
