@@ -2,7 +2,7 @@
 
 A self-hosted watcher for private payments ([idea doc](../../docs/ideas/02-ringd.md)). It polls the indexer for the wallets you configure, decrypts locally, and records each payment as an event in SQLite. The viewing key never leaves the machine.
 
-**Status:** M1 step 1 (watch → decrypt → SQLite → log). Webhooks, the local HTTP API and auto-merge come next.
+**Status:** M1 done: watch → decrypt → SQLite → events → HMAC-signed webhooks with retry. The local HTTP API and auto-merge come next.
 
 ## Keys: read-only by design
 
@@ -19,6 +19,8 @@ cp ringd.example.toml ringd.toml       # set network, wallets
 pnpm --filter @ringstack/ringd ringd run --config ringd.toml          # poll until SIGINT/SIGTERM
 pnpm --filter @ringstack/ringd ringd run --config ringd.toml --once   # one pass
 pnpm --filter @ringstack/ringd ringd events --config ringd.toml [--wallet shop] [--after <seq>]
+pnpm --filter @ringstack/ringd ringd deliveries --config ringd.toml [--webhook orders] [--status failed]
+pnpm --filter @ringstack/ringd ringd deliveries retry --webhook orders --config ringd.toml
 ```
 
 Logs are JSON lines. Each new event is logged as `{"msg":"event", "seq":…, …}`.
@@ -54,10 +56,68 @@ Logs are JSON lines. Each new event is logged as `{"msg":"event", "seq":…, …
 - `backfill: true` marks events found on a wallet's first sync, which is history from before ringd watched it.
 - Amounts are base units as strings.
 
+## Webhooks
+
+```toml
+[[webhook]]
+name = "orders"
+url = "https://shop.example/hooks/ringd"   # http:// is accepted only for localhost
+secret_env = "RINGD_WEBHOOK_SECRET"        # the secret comes from the environment, ≥ 16 chars
+events = ["payment.received"]              # optional filter
+wallets = ["shop"]                         # optional filter
+
+[delivery]                                 # optional, these are the defaults
+timeout_secs = 10
+max_attempts = 12
+retry_base_secs = 5                        # wait base × 2^(attempt−1) between tries
+retry_max_secs = 3600
+```
+
+Each delivery is a `POST` of one event as JSON with these headers:
+
+| Header | Value |
+|---|---|
+| `ringd-id` | `<wallet>:<event id>`: the same on every retry. Dedupe on it. |
+| `ringd-timestamp` | Unix seconds when this attempt was signed |
+| `ringd-signature` | `v1=<hex HMAC-SHA256(secret, "<timestamp>.<raw body>")>` |
+
+- **Success** is any 2xx. Anything else, including timeouts, connection errors and redirects (which are never followed), is retried with backoff. After `max_attempts` the delivery is marked `failed`; `ringd deliveries retry --webhook <name>` puts failed ones back in the queue.
+- **At least once:** a delivery can arrive more than once (for example, the receiver commits but the response is lost). Receivers must dedupe on `ringd-id`.
+- **Ordering:** each webhook gets events oldest first, and a failure pauses that webhook until its retry is due. Other webhooks are unaffected. Order across retries is not guaranteed, so use `slot` if order matters.
+- **Routing** happens when the event is recorded: a webhook added later does not receive older events.
+
+Verify in your handler with [`@ringstack/ringd-client`](../../packages/ringd-client):
+
+```ts
+import { createServer } from "node:http";
+import { verifyWebhook } from "@ringstack/ringd-client";
+
+createServer((req, res) => {
+  const chunks: Buffer[] = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", async () => {
+    try {
+      const { id, event } = verifyWebhook({
+        body: Buffer.concat(chunks).toString("utf8"), // the raw body, before any JSON parsing
+        headers: req.headers,
+        secret: process.env.RINGD_WEBHOOK_SECRET!,
+      });
+      if (event.type === "payment.received" && event.memo?.startsWith("order:")) {
+        await markOrderPaid(event.memo.slice(6), event.amount, id); // idempotent on `id`
+      }
+      res.writeHead(204).end();
+    } catch {
+      res.writeHead(400).end();
+    }
+  });
+}).listen(8080);
+```
+
 ## How state works
 
 - **Snapshot:** the SDK's wallet snapshot (UTXOs, history, sync cursors), sealed with a key derived from the viewing key (`keyedWalletSnapshotCipher`). It is saved only after a sync commits, so a restart resumes from the last committed cursors.
 - **Events:** each cycle compares the wallet's full history to the `events` table and appends what is missing. A crash between saving the snapshot and appending events is repaired on the next cycle, and a restart never re-emits.
+- **Deliveries:** one row per (webhook, event), written in the same transaction as the event, so an event is never recorded without its deliveries.
 
 ## Check on localnet
 
@@ -65,4 +125,4 @@ Logs are JSON lines. Each new event is logged as `{"msg":"event", "seq":…, …
 ./scripts/localnet.sh && pnpm --filter @ringstack/ringd e2e
 ```
 
-This covers a payment received before ringd started (reported once, `backfill`), a live payment with an order memo, an idle cycle and a restart with no duplicates, and the merchant spending elsewhere, which ringd reports as `payment.sent` with read-only keys.
+This covers a payment received before ringd started (reported once, `backfill`), a live payment with an order memo, an idle cycle and a restart with no duplicates, and the merchant spending elsewhere, which ringd reports as `payment.sent` with read-only keys. A local receiver verifies every webhook. One endpoint fails twice and then succeeds on the same `ringd-id`, and an unreachable one ends `failed` and is requeued.
