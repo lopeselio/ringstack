@@ -8,6 +8,8 @@
  *   - every payee ends with exactly what the plan says (no double payment)
  *   - an audit bundle for the run verifies with no keys; a forged amount (with
  *     its file hash updated to match) is caught against the chain
+ *   - a payee proves their own pay from their own wallet; the proof cannot open
+ *     a co-worker's output, and a tampered proof fails
  *
  *   pnpm --filter @ringstack/payroll e2e
  */
@@ -18,10 +20,21 @@ import { join } from "node:path";
 
 import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
 import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
-import { RingSession, clientConfigFromEnv, decodeMemo, spendableUtxos } from "@ringstack/core";
+import {
+  PaymentProofError,
+  RingSession,
+  clientConfigFromEnv,
+  decodeMemo,
+  decodePaymentProof,
+  fetchShieldedTransaction,
+  provePayment,
+  spendableUtxos,
+  verifyPaymentProof,
+} from "@ringstack/core";
 import { lamports, type Address } from "@solana/kit";
 
 import { AuditError, buildAudit, verifyAuditBundle, writeAuditBundle } from "../src/audit.ts";
+import { checkProof, listPayslips, provePayslip } from "../src/payslip.ts";
 import { parsePayrollCsv } from "../src/csv.ts";
 import { buildPlan, type Plan } from "../src/plan.ts";
 import { CrashSimulated, runPlan } from "../src/run.ts";
@@ -166,4 +179,40 @@ try {
 check(/paid \d+, expected 999999999/.test(caught), `forged amount not caught: ${caught}`);
 console.log("forged amount caught against the chain");
 
-console.log("ok: payroll plan, concurrent batches, crash + resume without double payment, expired-attempt retry, audit bundle");
+// Per-payee proof: payee 3 (paid in b001 with 14 others) proves only their own output.
+const employee = payees[3]!;
+const b001 = final.batches["b001"]!.signature!;
+const slip = listPayslips(employee).find((p) => p.signature === b001);
+check(slip !== undefined && slip.memo === "Payroll 2026-11", `payslip ${JSON.stringify(slip)}`);
+const proofLink = await provePayslip(employee, b001 as never, "localnet");
+const shown = await checkProof(client, proofLink);
+check(shown.owner === employee.owner && shown.amount === BigInt(slip.amount) && shown.registered, "proof contents");
+check(decodeMemo(shown.memo) === "Payroll 2026-11", "proof memo");
+console.log(`payee proof verified: ${shown.amount} to ${shown.owner.slice(0, 8)}…, memo "${decodeMemo(shown.memo)}" (${proofLink.length} chars)`);
+
+const expectCode = (fn: () => unknown, codes: string[]) => {
+  try {
+    fn();
+  } catch (e) {
+    if (e instanceof PaymentProofError && codes.includes(e.code)) return e.code;
+    throw e;
+  }
+  throw new Error(`expected one of ${codes.join(", ")}`);
+};
+const tx = await fetchShieldedTransaction(client, b001 as never);
+const proof = decodePaymentProof(proofLink);
+// Point the employee's secret at a co-worker's output: it opens nothing.
+const coworker = payees[4]!;
+const coworkerSlot = provePayment(coworker.keypair, tx, "localnet").outputSlot;
+const leaked = expectCode(
+  () => verifyPaymentProof({ ...proof, outputSlot: coworkerSlot, recipient: coworker.address }, tx),
+  ["DOES_NOT_DECRYPT", "COMMITMENT_MISMATCH"],
+);
+const tampered = expectCode(
+  () => verifyPaymentProof({ ...proof, sharedSecret: proof.sharedSecret.map((b, i) => (i === 5 ? b ^ 1 : b)) }, tx),
+  ["DOES_NOT_DECRYPT", "COMMITMENT_MISMATCH"],
+);
+const stranger = expectCode(() => provePayment(ShieldedKeypair.generate(), tx, "localnet"), ["NO_SUCH_OUTPUT"]);
+console.log(`co-worker's output stays closed (${leaked}); tampered proof fails (${tampered}); non-payee cannot prove (${stranger})`);
+
+console.log("ok: payroll plan, concurrent batches, crash + resume without double payment, expired-attempt retry, audit bundle, per-payee proof");
