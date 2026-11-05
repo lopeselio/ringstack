@@ -20,7 +20,15 @@ export default defineConfig({
         { label: "Guides", items: ["guides/devnet", "guides/privacy"] },
         {
           label: "Tools",
-          items: ["tools/ringd", "tools/payroll", "tools/verifier", "tools/checkout-demo"],
+          items: [
+            "tools/ringd",
+            "tools/payroll",
+            "tools/paywall",
+            "tools/agent-mcp",
+            "tools/verifier",
+            "tools/checkout-demo",
+            "tools/paywall-demo",
+          ],
         },
         {
           label: "Reference",
