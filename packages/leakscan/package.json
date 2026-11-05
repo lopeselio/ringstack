@@ -1,0 +1,22 @@
+{
+  "name": "@ringstack/leakscan",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "leakscan": "./src/cli.ts"
+  },
+  "scripts": {
+    "leakscan": "tsx --env-file-if-exists=../../.env src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@ringstack/core": "workspace:*"
+  }
+}
