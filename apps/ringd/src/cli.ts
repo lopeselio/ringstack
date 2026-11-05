@@ -5,6 +5,8 @@
  *   ringd keys export --keypair <solana-keypair.json> --out <key-file>
  *   ringd run    [--config ringd.toml] [--once]
  *   ringd events [--config ringd.toml] [--wallet <name>] [--after <seq>] [--limit <n>]
+ *   ringd deliveries [--config ringd.toml] [--webhook <name>] [--status pending|delivered|failed]
+ *   ringd deliveries retry --webhook <name> [--config ringd.toml]
  */
 import { parseArgs } from "node:util";
 
@@ -19,7 +21,9 @@ import { RingdStore } from "./store.ts";
 const USAGE = `usage:
   ringd keys export --keypair <solana-keypair.json> --out <key-file>
   ringd run    [--config ringd.toml] [--once]
-  ringd events [--config ringd.toml] [--wallet <name>] [--after <seq>] [--limit <n>]`;
+  ringd events [--config ringd.toml] [--wallet <name>] [--after <seq>] [--limit <n>]
+  ringd deliveries [--config ringd.toml] [--webhook <name>] [--status pending|delivered|failed]
+  ringd deliveries retry --webhook <name> [--config ringd.toml]`;
 
 async function keysExport(args: string[]) {
   const { values } = parseArgs({
@@ -47,6 +51,8 @@ async function run(args: string[]) {
     store,
     pollIntervalMs: config.pollIntervalMs,
     log: jsonLogger,
+    webhooks: config.webhooks,
+    delivery: config.delivery,
   });
   await daemon.start();
   if (values.once) {
@@ -60,7 +66,12 @@ async function run(args: string[]) {
   };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  jsonLogger.info("started", { network: config.network, wallets: config.wallets.length, pollMs: config.pollIntervalMs });
+  jsonLogger.info("started", {
+    network: config.network,
+    wallets: config.wallets.length,
+    webhooks: config.webhooks.length,
+    pollMs: config.pollIntervalMs,
+  });
   await daemon.run();
   store.close();
 }
@@ -89,11 +100,46 @@ async function events(args: string[]) {
   }
 }
 
+async function deliveries(args: string[]) {
+  const retry = args[0] === "retry";
+  const { values } = parseArgs({
+    args: retry ? args.slice(1) : args,
+    options: {
+      config: { type: "string", default: "ringd.toml" },
+      webhook: { type: "string" },
+      status: { type: "string" },
+    },
+  });
+  const status = values.status;
+  if (status !== undefined && status !== "pending" && status !== "delivered" && status !== "failed") {
+    throw new Error("--status must be pending, delivered or failed");
+  }
+  const config = await loadConfig(values.config);
+  const store = new RingdStore(config.database);
+  try {
+    if (retry) {
+      if (values.webhook === undefined) throw new Error("deliveries retry needs --webhook");
+      console.log(`requeued ${store.retryFailed(values.webhook)} failed deliveries for ${values.webhook}`);
+      return;
+    }
+    for (const d of store.listDeliveries({
+      ...(values.webhook === undefined ? {} : { webhook: values.webhook }),
+      ...(status === undefined ? {} : { status }),
+    })) {
+      const { event, ...rest } = d;
+      console.log(JSON.stringify({ ...rest, id: `${event.wallet}:${event.id}`, type: event.type }));
+    }
+  } finally {
+    store.close();
+  }
+}
+
 const [cmd, sub, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "keys" && sub === "export") await keysExport(rest);
   else if (cmd === "run") await run([sub, ...rest].filter((a): a is string => a !== undefined));
   else if (cmd === "events") await events([sub, ...rest].filter((a): a is string => a !== undefined));
+  else if (cmd === "deliveries") await deliveries([sub, ...rest].filter((a): a is string => a !== undefined));
   else {
     console.error(USAGE);
     process.exitCode = 2;
