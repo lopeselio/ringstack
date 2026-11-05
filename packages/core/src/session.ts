@@ -125,15 +125,19 @@ export class RingSession {
 
   /**
    * Private transfer. A plain `Address` is resolved through the registry.
-   * With `memo` the transfer goes through the lower-level builder so the
-   * recipient's output carries it (see memo.ts).
+   * Goes through the lower-level builder when `memo` is set (so the
+   * recipient's output carries it) or when the wallet holds memo-bearing
+   * UTXOs of `asset`, which the SDK's default selection skips (see memo.ts).
    */
   async transfer(
     recipient: TransferDestination,
     amount: bigint,
     { asset, memo }: AssetOption & { memo?: Uint8Array } = {},
   ): Promise<ConfirmedTransaction> {
-    if (memo !== undefined) return this.#transferWithMemo(recipient, amount, asset ?? SOL_MINT, memo);
+    const mint = asset ?? SOL_MINT;
+    if (memo !== undefined || hasMemoUtxos(this.wallet, mint)) {
+      return this.#transferLowLevel(recipient, amount, mint, memo);
+    }
     const tx = await buildTransferTransaction({
       client: this.client,
       wallet: this.wallet,
@@ -172,11 +176,11 @@ export class RingSession {
     return this.#submit(tx);
   }
 
-  async #transferWithMemo(
+  async #transferLowLevel(
     destination: TransferDestination,
     amount: bigint,
     asset: Address,
-    memo: Uint8Array,
+    memo: Uint8Array | undefined,
   ): Promise<ConfirmedTransaction> {
     const recipient = await this.#resolve(destination);
     const inputs = selectInputs(this.wallet, asset, amount).map((entry) =>
@@ -187,7 +191,12 @@ export class RingSession {
     );
     const transfer = new ConfidentialTransfer(this.address, inputs, this.owner);
     transfer.send(recipient, asset, amount);
-    const proofInputs = signTransferWithMemos(transfer, this.keypair, this.wallet.registry, [{ recipient, memo }]);
+    const proofInputs = signTransferWithMemos(
+      transfer,
+      this.keypair,
+      this.wallet.registry,
+      memo === undefined ? [] : [{ recipient, memo }],
+    );
     const data = await this.client.proveTransact(proofInputs, this.keys);
     const send = sendAndConfirmFactory(this.client, this.signer);
     const confirmed = await send([
@@ -219,11 +228,28 @@ export class RingSession {
 
 type WalletEntry = ReturnType<Wallet["utxos"]>[number];
 
+/** Spendable by the lower-level builder: no committed data, no ring, and data that is at most a memo. */
+function isSpendable(e: WalletEntry, asset: Address): boolean {
+  return (
+    !e.spent &&
+    e.utxo.asset === asset &&
+    e.utxo.ringProgramId === undefined &&
+    e.dataHash === undefined &&
+    e.ringDataHash === undefined &&
+    e.utxo.data.records().every((r) => r.kind === "memo")
+  );
+}
+
+/** Whether the wallet holds memo-bearing UTXOs of `asset` (skipped by the SDK's default selection). */
+export function hasMemoUtxos(wallet: Wallet, asset: Address): boolean {
+  return wallet.utxos().some((e) => isSpendable(e, asset) && !e.utxo.data.isEmpty());
+}
+
 /** Largest-first selection of unspent default-ring UTXOs covering `amount`. */
 export function selectInputs(wallet: Wallet, asset: Address, amount: bigint): WalletEntry[] {
   const candidates = wallet
     .utxos()
-    .filter((e) => !e.spent && e.utxo.asset === asset && e.utxo.ringProgramId === undefined)
+    .filter((e) => isSpendable(e, asset))
     .sort((a, b) => (a.utxo.amount === b.utxo.amount ? 0 : a.utxo.amount > b.utxo.amount ? -1 : 1));
   const picked: WalletEntry[] = [];
   let total = 0n;

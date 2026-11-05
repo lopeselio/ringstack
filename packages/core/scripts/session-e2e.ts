@@ -72,4 +72,12 @@ check(publicLamports === 4_000_000n, `public balance ${publicLamports}`);
 check(bob.balance() === 11_000_000n, `bob balance after withdraw ${bob.balance()}`);
 console.log(`withdrew 4M to ${cashOut}`);
 
-console.log("ok: register, setMerge, deposit, merge, transfer (+memo), withdraw");
+// Bob's remaining 11M is 6M plain + 5M carrying a memo, which the SDK's default
+// selection skips; RingSession falls back to the lower-level builder.
+await bob.transfer(alice.owner, 11_000_000n);
+await alice.sync();
+check(bob.balance() === 0n, `bob balance after spending memo funds ${bob.balance()}`);
+check(alice.balance() === 46_000_000n, `alice balance ${alice.balance()}`);
+console.log("bob spent funds including a memo payment");
+
+console.log("ok: register, setMerge, deposit, merge, transfer (+memo), withdraw, spend memo funds");
