@@ -13,3 +13,16 @@ id.json
 test-ledger/
 .surfpool/
 .claude/settings.local.json
+
+# Checkout demo state (keys, databases)
+.demo/
+*.db
+*.db-wal
+*.db-shm
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo
+# Written by next dev (agent instructions); not part of this repo
+apps/checkout-demo/AGENTS.md
