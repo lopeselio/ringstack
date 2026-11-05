@@ -2,7 +2,7 @@
 
 A self-hosted watcher for private payments ([idea doc](../../docs/ideas/02-ringd.md)). It polls the indexer for the wallets you configure, decrypts locally, and records each payment as an event in SQLite. The viewing key never leaves the machine.
 
-**Status:** M1 done: watch → decrypt → SQLite → events → HMAC-signed webhooks with retry. The local HTTP API and auto-merge come next.
+**Status:** watch → decrypt → SQLite → events → HMAC-signed webhooks with retry, and auto-merge. The local HTTP API is next.
 
 ## Keys: read-only by design
 
@@ -113,6 +113,26 @@ createServer((req, res) => {
 }).listen(8080);
 ```
 
+## Auto-merge
+
+Wallets that receive many payments accumulate many small UTXOs, and a spend can use at most a few dozen inputs. ringd can merge them for you, **without the spending key**:
+
+```toml
+[[wallet]]
+name = "shop"
+key_file = "./shop.ringd-key.json"
+merge_threshold = 30            # merge once 30 spendable UTXOs of one asset pile up
+
+[merge]
+fee_payer = "./fee-payer.json"  # a Solana keypair holding only SOL for fees
+max_inputs = 24                 # UTXOs per merge (2–24, default 24)
+```
+
+- A merge spends with the **nullifier key** (in the key file) and is proved with the viewing + nullifier keys. The only signer is the **fee payer**, a separate hot wallet with just enough SOL for fees, never the owner. The owner's balance and keys are untouched.
+- The owner must opt in once, from their own wallet: `RingSession.setMerge(true)` (`buildSetMergeEncryptionTransaction` with `PoseidonCtrV1`). Until then ringd logs `merge skipped` once per run and leaves the wallet alone.
+- Each cycle, after recording events, ringd merges the smallest UTXOs (up to `max_inputs`) of any asset at or over the threshold. The merge shows up as a `utxo.merged` event on the next cycle.
+- **Memo payments are merged too.** The SDK's merge refuses UTXOs that carry a memo ([helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543)); ringd rebuilds each one without its memo (the memo is outside the commitment, so the hash is unchanged) and merges through the lower-level builder. The merged output has no memo; the memo was already delivered in its `payment.received` event.
+
 ## How state works
 
 - **Snapshot:** the SDK's wallet snapshot (UTXOs, history, sync cursors), sealed with a key derived from the viewing key (`keyedWalletSnapshotCipher`). It is saved only after a sync commits, so a restart resumes from the last committed cursors.
@@ -125,4 +145,4 @@ createServer((req, res) => {
 ./scripts/localnet.sh && pnpm --filter @ringstack/ringd e2e
 ```
 
-This covers a payment received before ringd started (reported once, `backfill`), a live payment with an order memo, an idle cycle and a restart with no duplicates, and the merchant spending elsewhere, which ringd reports as `payment.sent` with read-only keys. A local receiver verifies every webhook. One endpoint fails twice and then succeeds on the same `ringd-id`, and an unreachable one ends `failed` and is requeued.
+This covers a payment received before ringd started (reported once, `backfill`), a live payment with an order memo, an idle cycle and a restart with no duplicates, and the merchant spending elsewhere, which ringd reports as `payment.sent` with read-only keys. A second wallet that opted in gets three memo payments and is merged into one plain UTXO by ringd with only its key file and a separate fee payer (the owner's SOL balance does not change); the first wallet, over its threshold but not opted in, is skipped. A local receiver verifies every webhook. One endpoint fails twice and then succeeds on the same `ringd-id`, and an unreachable one ends `failed` and is requeued.
