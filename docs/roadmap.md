@@ -52,7 +52,8 @@ spec/
 
 ## Milestone 3: Devnet release
 - [x] Run everything against devnet; document known privacy limits ([docs/devnet.md](devnet.md); upgraded to zolana 0.8, nightly devnet CI).
-- [ ] Docs site / READMEs, demo video.
+- [x] Docs site ([apps/docs](../apps/docs), Astro Starlight, generated from the repo docs).
+- [ ] Demo video.
 
 ## Track Z: zk-gadgets (parallel, longer)
 - [ ] Z0: Build and run upstream `escrow-program` locally (Go ≥1.27.1, `cargo build-sbf`).
