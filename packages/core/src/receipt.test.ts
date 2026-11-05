@@ -38,4 +38,20 @@ describe("receipt codec", () => {
     expect(() => decodeReceipt(RECEIPT_PREFIX + body.toString("base64url"))).toThrow(/version/);
     expect(() => decodeReceipt(RECEIPT_PREFIX + body.subarray(1).toString("base64url"))).toThrow(/bytes/);
   });
+
+  it("encodes the body as unpadded base64url, matching Node", () => {
+    for (let n = 0; n < 4; n++) {
+      const r: Receipt = { cluster: "mainnet", signature: sig, txViewingKey: key.map((b) => b ^ n), slot: BigInt(n + 1) };
+      const enc = encodeReceipt(r);
+      const body = enc.slice(RECEIPT_PREFIX.length);
+      expect(body).not.toMatch(/[+/=]/);
+      expect(Buffer.from(body, "base64url").toString("base64url")).toBe(body);
+      expect(decodeReceipt(enc)).toEqual(r);
+    }
+  });
+
+  it("rejects non-base64url characters", () => {
+    const enc = encodeReceipt({ cluster: "devnet", signature: sig, txViewingKey: key });
+    expect(() => decodeReceipt(enc.slice(0, -2) + "+/")).toThrow(/base64url/);
+  });
 });
