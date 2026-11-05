@@ -25,13 +25,14 @@ import {
   type SyncReport,
   type TransferDestination,
 } from "@heliuslabs/zolana";
-import { MERGE_INPUT_COUNT, TransactWithdrawal, transactInstruction } from "@heliuslabs/zolana/interface";
-import { getUserRecordAddress } from "@heliuslabs/zolana/addresses";
-import { ConfidentialTransfer, Merge, ProofInputUtxo, Utxo, WithdrawalTarget } from "@heliuslabs/zolana/transaction";
+import { TransactWithdrawal, transactInstruction } from "@heliuslabs/zolana/interface";
+import { ConfidentialTransfer, ProofInputUtxo, WithdrawalTarget } from "@heliuslabs/zolana/transaction";
 import { fetchUserRecord, resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
 import type { Transaction, TransactionPartialSigner } from "@solana/kit";
 
+import { buildMerge } from "./merge.ts";
 import { signTransferWithMemos, type OutputMemo } from "./memo.ts";
+import { hasMemoUtxos, isSpendable, type WalletEntry } from "./utxos.ts";
 import {
   sendAndConfirmFactory,
   submitTransaction,
@@ -266,18 +267,22 @@ export class RingSession {
   }
 
   async #mergeLowLevel(asset: Address): Promise<ConfirmedTransaction> {
-    const inputs = mergeEntries(this.wallet, asset).map((e) =>
-      ProofInputUtxo.fromKeypair(withoutMemo(e.utxo), this.keypair),
-    );
-    const prepared = Merge.fromKeypair(this.keypair, inputs).prepare();
-    const proved = await this.client.proveMerge({ prepared, keys: this.keys });
-    const tx = await this.client.assembleAuthorizedMergeTransaction({
-      proved,
-      feePayer: this.owner,
-      userRecord: await getUserRecordAddress(this.owner),
-    });
-    return this.#submit(tx);
+    const nullifierKey = this.keypair.nullifierKey();
+    try {
+      const { transaction } = await buildMerge({
+        client: this.client,
+        wallet: this.wallet,
+        authority: { address: this.address, nullifierKey },
+        keys: this.keys,
+        feePayer: this.owner,
+        asset,
+      });
+      return await this.#submit(transaction);
+    } finally {
+      nullifierKey.destroy();
+    }
   }
+
 
   async #transferLowLevel(
     destination: TransferDestination,
@@ -352,62 +357,6 @@ export class RingSession {
     await this.sync(confirmed.slot);
     return confirmed;
   }
-}
-
-export type WalletEntry = ReturnType<Wallet["utxos"]>[number];
-
-/** Stable key of a wallet UTXO (its commitment hash), for tracking which inputs are taken. */
-export function utxoKey(entry: WalletEntry): string {
-  return Buffer.from(entry.outputContext.hash).toString("hex");
-}
-
-/** Unspent UTXOs of `asset` that the lower-level builder can spend (plain or memo-only), largest first. */
-export function spendableUtxos(wallet: Wallet, asset: Address): WalletEntry[] {
-  return wallet
-    .utxos()
-    .filter((e) => isSpendable(e, asset))
-    .sort((a, b) => (a.utxo.amount === b.utxo.amount ? 0 : a.utxo.amount > b.utxo.amount ? -1 : 1));
-}
-
-/** Spendable by the lower-level builder: no committed data, no ring, and data that is at most a memo. */
-function isSpendable(e: WalletEntry, asset: Address): boolean {
-  return (
-    !e.spent &&
-    e.utxo.asset === asset &&
-    e.utxo.ringProgramId === undefined &&
-    e.dataHash === undefined &&
-    e.ringDataHash === undefined &&
-    e.utxo.data.records().every((r) => r.kind === "memo")
-  );
-}
-
-/** Whether the wallet holds memo-bearing UTXOs of `asset` (skipped by the SDK's default selection). */
-export function hasMemoUtxos(wallet: Wallet, asset: Address): boolean {
-  return wallet.utxos().some((e) => isSpendable(e, asset) && !e.utxo.data.isEmpty());
-}
-
-/** The same UTXO without its memo: identical commitment, since the memo is not hashed. */
-function withoutMemo(utxo: Utxo): Utxo {
-  const rest = utxo.data.records().filter((r) => r.kind !== "memo");
-  if (rest.length > 0) throw new Error("UTXO carries data other than a memo");
-  return new Utxo({
-    owner: utxo.owner,
-    asset: utxo.asset,
-    amount: utxo.amount,
-    blinding: utxo.blinding,
-    ...(utxo.ringProgramId === undefined ? {} : { ringProgramId: utxo.ringProgramId }),
-  });
-}
-
-/** Up to `MERGE_INPUT_COUNT` spendable UTXOs (memo-only included), smallest first. */
-export function mergeEntries(wallet: Wallet, asset: Address): WalletEntry[] {
-  const entries = wallet
-    .utxos()
-    .filter((e) => isSpendable(e, asset))
-    .sort((a, b) => (a.utxo.amount === b.utxo.amount ? 0 : a.utxo.amount < b.utxo.amount ? -1 : 1))
-    .slice(0, MERGE_INPUT_COUNT);
-  if (entries.length < 2) throw new Error("nothing to merge: fewer than 2 spendable UTXOs");
-  return entries;
 }
 
 /** Largest-first selection of unspent default-ring UTXOs covering `amount`. */
