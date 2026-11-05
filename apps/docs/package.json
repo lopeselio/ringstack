@@ -1,0 +1,23 @@
+{
+  "name": "@ringstack/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "dev": "node scripts/sync.mjs && astro dev --port 4321",
+    "build": "node scripts/sync.mjs && astro build",
+    "preview": "astro preview --port 4321",
+    "typecheck": "node scripts/sync.mjs && astro sync && tsc --noEmit"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.9",
+    "@fontsource/instrument-sans": "^5.3.0",
+    "@fontsource/martian-mono": "^5.3.0",
+    "astro": "7.4.5",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -29,3 +29,11 @@ apps/checkout-demo/AGENTS.md
 
 # Devnet test wallets (funder keypair)
 .devnet/
+
+# Docs site: generated from repo docs by apps/docs/scripts/sync.mjs, plus build output
+apps/docs/src/content/docs/guides/
+apps/docs/src/content/docs/tools/
+apps/docs/src/content/docs/reference/
+apps/docs/src/content/docs/background/
+apps/docs/dist/
+apps/docs/.astro/
