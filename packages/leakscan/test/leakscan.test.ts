@@ -54,6 +54,7 @@ describe("analyze", () => {
     expect(s.exactSetSizes.find((b) => b.label === "1")?.count).toBe(1);
     expect(s.exactSetSizes.find((b) => b.label === "2–5")?.count).toBe(1);
     expect(s.medianNaiveSet).toBe(3);
+    expect(s.byMainReason).toEqual({ uniqueAmount: 1, roundTrip: 1, recipientReuse: 1, notLinked: 1 });
   });
   it("does not match deposits outside the window", () => {
     const late = analyze([ev("deposit", 7, "a", 0), ev("withdrawal", 7, "b", 10 * H)], { windowSecs: 5 * H });

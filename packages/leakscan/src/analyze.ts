@@ -52,6 +52,16 @@ export interface LeakStats {
     /** Any of the three above. */
     readonly linkable: number;
   };
+  /**
+   * Each withdrawal counted once, under its strongest link: unique amount,
+   * then round trip, then recipient reuse, else not linked. Sums to the total.
+   */
+  readonly byMainReason: {
+    readonly uniqueAmount: number;
+    readonly roundTrip: number;
+    readonly recipientReuse: number;
+    readonly notLinked: number;
+  };
   /** Exact-amount set sizes across withdrawals. */
   readonly exactSetSizes: readonly Bucket[];
   /** Hours from the most recent same-amount deposit to the withdrawal. */
@@ -98,6 +108,7 @@ export function analyze(
   let roundTrip = 0;
   let reuse = 0;
   let linkable = 0;
+  const main = { uniqueAmount: 0, roundTrip: 0, recipientReuse: 0, notLinked: 0 };
   const setSizes: number[] = [];
   const delays: number[] = [];
   const naive: number[] = [];
@@ -130,6 +141,10 @@ export function analyze(
     if (isRoundTrip) roundTrip++;
     if (isReuse) reuse++;
     if (candidates.length === 1 || isRoundTrip || isReuse) linkable++;
+    if (candidates.length === 1) main.uniqueAmount++;
+    else if (isRoundTrip) main.roundTrip++;
+    else if (isReuse) main.recipientReuse++;
+    else main.notLinked++;
     recipients.add(e.address);
   }
 
@@ -152,6 +167,7 @@ export function analyze(
       distinctRecipients: recipients.size,
     },
     withdrawals: { uniqueAmountMatch: unique, noAmountMatch: none, roundTrip, recipientReuse: reuse, linkable },
+    byMainReason: main,
     exactSetSizes: bucket(setSizes, [[0, "0"], [1, "1"], [5, "2–5"], [20, "6–20"]], "21+"),
     matchDelayHours: bucket(delays, [[1, "< 1 h"], [6, "1–6 h"], [24, "6–24 h"], [72, "1–3 days"]], "3+ days"),
     medianNaiveSet: median(naive),
