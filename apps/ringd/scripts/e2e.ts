@@ -10,17 +10,22 @@
  *   orders  payment.received only; fails its first 2 requests (retries, same ringd-id)
  *   all     every event
  *   dead    unreachable; deliveries end up failed, then `retryFailed` requeues them
+ * Auto-merge:
+ *   kiosk   owner opted in to merges; after 3 memo payments ringd merges them with
+ *           the key file + a separate fee payer (owner pays nothing, signs nothing)
+ *   shop    has a threshold but never opted in; ringd logs once and skips it
  *
  *   pnpm --filter @ringstack/ringd e2e
  */
+import { generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { RingSession, clientConfigFromEnv, encodeMemo } from "@ringstack/core";
+import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { RingSession, clientConfigFromEnv, encodeMemo, loadShieldedKeypair } from "@ringstack/core";
 import { verifyWebhook, type RingdEvent } from "@ringstack/ringd-client";
 import { lamports } from "@solana/kit";
 
@@ -72,14 +77,15 @@ await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
 const webhooks: WebhookConfig[] = [
-  { name: "orders", url: `${base}/orders`, secret: SECRET, events: ["payment.received"] },
-  { name: "all", url: `${base}/all`, secret: SECRET },
-  { name: "dead", url: "http://127.0.0.1:9/dead", secret: SECRET, events: ["payment.received"] },
+  { name: "orders", url: `${base}/orders`, secret: SECRET, wallets: ["shop"], events: ["payment.received"] },
+  { name: "all", url: `${base}/all`, secret: SECRET, wallets: ["shop"] },
+  { name: "dead", url: "http://127.0.0.1:9/dead", secret: SECRET, wallets: ["shop"], events: ["payment.received"] },
 ];
 const delivery: DeliveryConfig = { timeoutMs: 2000, maxAttempts: 3, retryBaseMs: 50, retryMaxMs: 200 };
 
 // --- chain setup ------------------------------------------------------------
-const quiet: Logger = { info: () => {}, error: () => {} };
+const errors: string[] = [];
+const quiet: Logger = { info: () => {}, error: (m) => errors.push(m) };
 const clientConfig = clientConfigFromEnv();
 
 await initializePoseidon();
@@ -92,6 +98,12 @@ for (const s of [customer, merchant]) {
 }
 await customer.deposit(50_000_000n);
 
+// Kiosk: a second merchant that opts in to merges.
+const kiosk = await RingSession.open(client, ShieldedKeypair.generate());
+await client.confirmTransaction(await client.solanaRpc.requestAirdrop(kiosk.owner, lamports(1_000_000_000n)).send());
+await kiosk.register();
+await kiosk.setMerge(true);
+
 // 1. Paid before ringd exists.
 await customer.transfer(merchant.owner, 7_000_000n, { memo: encodeMemo("order:early") });
 
@@ -99,17 +111,34 @@ const dir = mkdtempSync(join(tmpdir(), "ringd-e2e-"));
 const keyFile = join(dir, "shop.json");
 writeFileSync(keyFile, exportKeyFile(merchant.keypair), { mode: 0o600 });
 const dbPath = join(dir, "ringd.db");
+const kioskKeyFile = join(dir, "kiosk.json");
+writeFileSync(kioskKeyFile, exportKeyFile(kiosk.keypair), { mode: 0o600 });
+
+// Fee payer for merges: its own keypair with SOL only.
+const feePayerPath = join(dir, "fee-payer.json");
+{
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const seed = privateKey.export({ format: "der", type: "pkcs8" }).subarray(-32);
+  const pub = publicKey.export({ format: "der", type: "spki" }).subarray(-32);
+  writeFileSync(feePayerPath, JSON.stringify([...seed, ...pub]), { mode: 0o600 });
+}
+const feePayerAddress = (await loadShieldedKeypair(feePayerPath)).toSolanaSigner().address;
+await client.confirmTransaction(await client.solanaRpc.requestAirdrop(feePayerAddress, lamports(100_000_000n)).send());
 
 async function startDaemon() {
   const store = new RingdStore(dbPath);
   const daemon = new Daemon({
     client: clientConfig,
-    wallets: [{ name: "shop", keyFile }],
+    wallets: [
+      { name: "shop", keyFile, mergeThreshold: 2 },
+      { name: "kiosk", keyFile: kioskKeyFile, mergeThreshold: 3 },
+    ],
     store,
     pollIntervalMs: 1000,
     log: quiet,
     webhooks,
     delivery,
+    merge: { feePayer: feePayerPath, maxInputs: 24 },
   });
   await daemon.start();
   return { store, daemon };
@@ -149,7 +178,7 @@ store.close();
 added = (await daemon.runOnce()).events;
 console.log("after restart  ", show(added));
 check(added.length === 0, "restart re-emitted events");
-check(store.listEvents().length === 2, "expected 2 stored events");
+check(store.listEvents({ wallet: "shop" }).length === 2, "expected 2 stored shop events");
 
 // 4. The merchant spends with its own wallet; ringd sees it with read-only keys.
 await merchant.sync();
@@ -158,6 +187,31 @@ added = (await daemon.runOnce()).events;
 console.log("merchant spend ", show(added));
 check(added.some((e) => e.event.type === "payment.sent"), "expected a payment.sent event");
 await drain(store, daemon);
+
+// 5. Auto-merge: three memo payments push the kiosk over its threshold.
+for (const order of ["k1", "k2", "k3"]) {
+  await customer.transfer(kiosk.owner, 1_000_000n, { memo: encodeMemo(`order:${order}`) });
+}
+const ownerLamportsBefore = (await client.solanaRpc.getBalance(kiosk.owner).send()).value;
+added = (await daemon.runOnce()).events; // records the 3 payments, then merges
+console.log("kiosk payments ", show(added));
+check(added.filter((e) => e.event.wallet === "kiosk" && e.event.type === "payment.received").length === 3, "kiosk payments");
+added = (await daemon.runOnce()).events; // the merge shows up in history
+console.log("kiosk merge    ", show(added));
+check(added.some((e) => e.event.wallet === "kiosk" && e.event.type === "utxo.merged"), "expected a utxo.merged event");
+await kiosk.sync();
+const kioskUtxos = kiosk.wallet.balance(SOL_MINT).utxos;
+check(kioskUtxos.length === 1 && kioskUtxos[0]!.amount === 3_000_000n, `kiosk utxos ${kioskUtxos.map((u) => u.amount)}`);
+check(kioskUtxos[0]!.data.isEmpty(), "merged output should be plain");
+const ownerLamportsAfter = (await client.solanaRpc.getBalance(kiosk.owner).send()).value;
+check(ownerLamportsAfter === ownerLamportsBefore, "the kiosk owner paid for the merge");
+console.log("kiosk merged 3 memo payments into 1 plain UTXO; fee paid by the fee payer, not the owner");
+
+// The shop is over its threshold of 2 but never opted in: skipped and logged once per
+// daemon run (this test started two: before and after the restart), never merged.
+check(errors.filter((m) => m.startsWith("merge skipped")).length === 2, `merge-skip logs: ${JSON.stringify(errors)}`);
+check(!store.listEvents({ wallet: "shop" }).some((e) => e.event.type === "utxo.merged"), "shop must not be merged");
+console.log("shop (no opt-in) was skipped, logged once per run");
 
 // --- webhook assertions -----------------------------------------------------
 const memos = (hook: string) => (received.get(hook) ?? []).map((r) => r.event.memo ?? r.event.type).sort();
@@ -182,4 +236,4 @@ console.log(`dead webhook   ${dead.length} failed after ${delivery.maxAttempts} 
 
 store.close();
 server.close();
-console.log("ok: ringd events, signed webhooks with retry, idempotent ids, failure + requeue");
+console.log("ok: ringd events, signed webhooks with retry, idempotent ids, failure + requeue, auto-merge without the spending key");
