@@ -1,0 +1,20 @@
+{
+  "name": "@ringstack/paywall",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "e2e": "tsx --env-file-if-exists=../../.env scripts/e2e.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@ringstack/core": "workspace:*",
+    "@solana/kit": "^8.6.0"
+  }
+}
