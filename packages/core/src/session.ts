@@ -15,6 +15,7 @@ import {
   buildMergeTransaction,
   buildRegistrationTransaction,
   buildSetMergeEncryptionTransaction,
+  buildSplitTransaction,
   buildTransferTransaction,
   buildWithdrawalTransaction,
   syncWallet,
@@ -31,10 +32,31 @@ import { fetchUserRecord, resolveRegisteredAddress } from "@heliuslabs/zolana/wa
 import type { Transaction, TransactionPartialSigner } from "@solana/kit";
 
 import { signTransferWithMemos, type OutputMemo } from "./memo.ts";
-import { sendAndConfirmFactory, submitTransaction, type ConfirmedTransaction, type ZolanaClient } from "./send.ts";
+import {
+  sendAndConfirmFactory,
+  submitTransaction,
+  type ConfirmedTransaction,
+  type SendHooks,
+  type ZolanaClient,
+} from "./send.ts";
 
 /** Most inputs a memo transfer will spend; past this, merge first. */
 export const MAX_MEMO_TRANSFER_INPUTS = 8;
+
+/** Most payees in one transaction: 16 outputs minus the change output. */
+export const MAX_BATCH_PAYMENTS = 15;
+
+export interface BatchPayment {
+  readonly recipient: TransferDestination;
+  readonly amount: bigint;
+  /** Encoded memo for this payee's output (see memo.ts). */
+  readonly memo?: Uint8Array;
+}
+
+export interface TransferManyOptions extends AssetOption, SendHooks {
+  /** Spend exactly these UTXOs (e.g. a disjoint set per concurrent batch); selected automatically otherwise. */
+  readonly inputs?: readonly WalletEntry[];
+}
 
 export interface AssetOption {
   /** Mint; SOL when absent. */
@@ -198,6 +220,51 @@ export class RingSession {
     return this.#submit(tx);
   }
 
+  /**
+   * One private transaction paying up to 15 recipients, each as its own
+   * output with an optional memo. A recipient may appear only once (memos are
+   * matched to outputs by recipient).
+   */
+  async transferMany(
+    payments: readonly BatchPayment[],
+    { asset, inputs, beforeSend }: TransferManyOptions = {},
+  ): Promise<ConfirmedTransaction> {
+    if (payments.length === 0 || payments.length > MAX_BATCH_PAYMENTS) {
+      throw new Error(`a batch pays 1–${MAX_BATCH_PAYMENTS} recipients, got ${payments.length}`);
+    }
+    const mint = asset ?? SOL_MINT;
+    const resolved = await Promise.all(payments.map((p) => this.#resolve(p.recipient)));
+    const keys = resolved.map((a) => Buffer.from(a.viewingPublicKey.toBytes()).toString("hex"));
+    if (new Set(keys).size !== keys.length) throw new Error("a recipient appears twice in one batch");
+    const total = payments.reduce((sum, p) => sum + p.amount, 0n);
+    return this.#spendLowLevel(
+      mint,
+      total,
+      (t) => resolved.forEach((recipient, i) => t.send(recipient, mint, payments[i]!.amount)),
+      {
+        memos: resolved.flatMap((recipient, i) => {
+          const memo = payments[i]!.memo;
+          return memo === undefined ? [] : [{ recipient, memo }];
+        }),
+        ...(inputs === undefined ? {} : { inputs }),
+        ...(beforeSend === undefined ? {} : { beforeSend }),
+      },
+    );
+  }
+
+  /** Split this identity's balance of one asset into `parts` equal UTXOs, for concurrent spends. */
+  async split(parts: number, { asset }: AssetOption = {}): Promise<ConfirmedTransaction> {
+    const tx = await buildSplitTransaction({
+      client: this.client,
+      wallet: this.wallet,
+      keys: this.keys,
+      feePayer: this.owner,
+      parts,
+      ...(asset === undefined ? {} : { asset }),
+    });
+    return this.#submit(tx);
+  }
+
   async #mergeLowLevel(asset: Address): Promise<ConfirmedTransaction> {
     const inputs = mergeEntries(this.wallet, asset).map((e) =>
       ProofInputUtxo.fromKeypair(withoutMemo(e.utxo), this.keypair),
@@ -232,26 +299,43 @@ export class RingSession {
     asset: Address,
     amount: bigint,
     build: (transfer: ConfidentialTransfer) => void,
-    { memos = [], withdrawal }: Readonly<{ memos?: readonly OutputMemo[]; withdrawal?: TransactWithdrawal }> = {},
+    {
+      memos = [],
+      withdrawal,
+      inputs: chosen,
+      beforeSend,
+    }: Readonly<{
+      memos?: readonly OutputMemo[];
+      withdrawal?: TransactWithdrawal;
+      inputs?: readonly WalletEntry[];
+      beforeSend?: SendHooks["beforeSend"];
+    }> = {},
   ): Promise<ConfirmedTransaction> {
-    const inputs = selectInputs(this.wallet, asset, amount).map((entry) =>
-      ProofInputUtxo.fromKeypair(entry.utxo, this.keypair),
-    );
+    const entries = chosen ?? selectInputs(this.wallet, asset, amount);
+    if (chosen !== undefined) {
+      const covered = chosen.reduce((sum, e) => sum + e.utxo.amount, 0n);
+      if (covered < amount) throw new Error(`given inputs hold ${covered}, need ${amount}`);
+      if (!chosen.every((e) => isSpendable(e, asset))) throw new Error("given inputs are not all spendable");
+    }
+    const inputs = entries.map((entry) => ProofInputUtxo.fromKeypair(entry.utxo, this.keypair));
     const transfer = new ConfidentialTransfer(this.address, inputs, this.owner);
     build(transfer);
     const proofInputs = signTransferWithMemos(transfer, this.keypair, this.wallet.registry, memos);
     const data = await this.client.proveTransact(proofInputs, this.keys);
     const send = sendAndConfirmFactory(this.client, this.signer);
-    const confirmed = await send([
-      await transactInstruction({
-        payer: this.signer,
-        ownerSigners: [this.signer],
-        inputTree: this.client.tree,
-        outputTree: this.client.tree,
-        ...(withdrawal === undefined ? {} : { withdrawal }),
-        data,
-      }),
-    ]);
+    const confirmed = await send(
+      [
+        await transactInstruction({
+          payer: this.signer,
+          ownerSigners: [this.signer],
+          inputTree: this.client.tree,
+          outputTree: this.client.tree,
+          ...(withdrawal === undefined ? {} : { withdrawal }),
+          data,
+        }),
+      ],
+      beforeSend === undefined ? {} : { beforeSend },
+    );
     await this.sync(confirmed.slot);
     return confirmed;
   }
@@ -270,7 +354,20 @@ export class RingSession {
   }
 }
 
-type WalletEntry = ReturnType<Wallet["utxos"]>[number];
+export type WalletEntry = ReturnType<Wallet["utxos"]>[number];
+
+/** Stable key of a wallet UTXO (its commitment hash), for tracking which inputs are taken. */
+export function utxoKey(entry: WalletEntry): string {
+  return Buffer.from(entry.outputContext.hash).toString("hex");
+}
+
+/** Unspent UTXOs of `asset` that the lower-level builder can spend (plain or memo-only), largest first. */
+export function spendableUtxos(wallet: Wallet, asset: Address): WalletEntry[] {
+  return wallet
+    .utxos()
+    .filter((e) => isSpendable(e, asset))
+    .sort((a, b) => (a.utxo.amount === b.utxo.amount ? 0 : a.utxo.amount > b.utxo.amount ? -1 : 1));
+}
 
 /** Spendable by the lower-level builder: no committed data, no ring, and data that is at most a memo. */
 function isSpendable(e: WalletEntry, asset: Address): boolean {
