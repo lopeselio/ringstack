@@ -1,5 +1,7 @@
 import { getBase58Decoder, getBase58Encoder, type Signature } from "@solana/kit";
 
+import { fromBase64Url, toBase64Url } from "./base64url.ts";
+
 /**
  * A RingPay receipt discloses exactly one private transaction: the
  * transaction signature plus that transaction's viewing key
@@ -30,19 +32,6 @@ export interface Receipt {
 const SIG_LEN = 64;
 const KEY_LEN = 32;
 const BODY_LEN = 2 + SIG_LEN + KEY_LEN + 8;
-
-// base64url without padding, via btoa/atob so the codec also runs in browsers.
-function toBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function fromBase64Url(text: string): Uint8Array {
-  if (!/^[A-Za-z0-9_-]*$/.test(text)) throw new Error("receipt body is not base64url");
-  const binary = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
-}
 
 export function encodeReceipt(receipt: Receipt): string {
   const sig = getBase58Encoder().encode(receipt.signature);
