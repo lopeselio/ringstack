@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Receipt check</title>
+    <meta name="description" content="Check a RingPay receipt for a private Solana payment." />
+  </head>
+  <body>
+    <main class="page">
+      <header class="intro">
+        <h1>Check a private payment</h1>
+        <p>
+          Paste a RingPay receipt to see what it paid and whether the amounts match the chain. The receipt is
+          decoded in your browser. Only the transaction signature goes to the indexer.
+        </p>
+      </header>
+
+      <form class="check" id="check" novalidate>
+        <label class="field">
+          <span class="field-label">Receipt</span>
+          <textarea
+            id="link"
+            name="link"
+            rows="3"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="ringrcpt1:…"
+            required
+          ></textarea>
+        </label>
+        <label class="field">
+          <span class="field-label">Your Solana address <span class="optional">(optional)</span></span>
+          <input id="owner" name="owner" type="text" spellcheck="false" autocomplete="off" />
+          <span class="hint">Marks the output paid to you, and checks it even if you aren't in the registry.</span>
+        </label>
+        <button type="submit" id="submit">Check receipt</button>
+      </form>
+
+      <section class="result" id="result" aria-live="polite"></section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
