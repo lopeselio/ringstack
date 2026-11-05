@@ -85,7 +85,7 @@ Writing a ZK program means: gnark circuit → trusted setup / proving key → ve
 
 - TS: `@heliuslabs/zolana` (+ `@solana/kit`). Rust: `zolana-client`, `zolana-interface`, `zolana-program`, `zolana-keypair`, `zolana-transaction`.
 - **Version drift:** docs reference `v0.5.0-alpha` and SPP `sppU489D7A4U1exNo1oeMGZtLEofq3a6o2fR7UeoWB6`. The examples repo now targets **`v0.6.0-alpha`** with shielded-pool program **`ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`**, and earlier notes are not migrated. **Pin v0.6.0-alpha.**
-- User Registry: `regyS5rkAcw2YzDJCmTwCTHs2s246FXxbmuRZ42u2PD` (devnet, per docs).
+- User Registry: the v0.6.0-alpha SDK uses **`regy3WAeRXMYuMYxr5iK3Bf9Arr3PcxGxyzAddbiqDQ`**. The docs list `regyS5rkAcw2YzDJCmTwCTHs2s246FXxbmuRZ42u2PD`, an older deployment; both are deployed on devnet (checked 2026-11-05), and the SDK only talks to `regy3W…`.
 
 ## Upstream work in flight (avoid duplicating)
 
