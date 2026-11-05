@@ -18,7 +18,26 @@ VENDOR_KEY_FILE=vendor.ringd-key.json VENDOR_ADDRESS=<vendor Solana address> \
 ZOLANA_NETWORK=devnet pnpm --filter @ringstack/paywall-demo start      # :8080
 ```
 
-Call it with [`paidFetch`](../../packages/paywall) or the [agent MCP server](../agent-mcp).
+Call it with [`paidFetch`](../../packages/paywall), the [agent MCP server](../agent-mcp), or the `call` script, which pays from an agent wallet with a private balance:
+
+```bash
+AGENT_KEYPAIR=.devnet/agent.json ZOLANA_NETWORK=devnet \
+  pnpm --filter @ringstack/paywall-demo call "http://localhost:8080/v1/forecast?city=Lisbon"
+```
+
+## Deploy (Azure App Service)
+
+`pnpm --filter @ringstack/paywall-demo bundle` writes `dist/server.mjs`: one 6 MB file with the dependencies and the hasher WASM inlined, so the host needs no `node_modules` and no TypeScript at runtime. That matters on small plans. Azure's free F1 tier allows 60 CPU-minutes a day, and unpacking a 10,000-file `node_modules` used all of it.
+
+```bash
+mkdir -p deploy/dist && cp dist/server.mjs deploy/dist/
+echo '{"type":"module","scripts":{"start":"node dist/server.mjs"}}' > deploy/package.json
+(cd deploy && zip -qr ../app.zip .)
+az webapp config set -g <group> -n <app> --startup-file "node dist/server.mjs"
+az webapp deploy -g <group> -n <app> --src-path app.zip --type zip
+```
+
+App settings: `ZOLANA_NETWORK=devnet`, `API_KEY`, `VENDOR_KEY` (the read-only key file's JSON), `VENDOR_ADDRESS`, `PRICE`, `SCM_DO_BUILD_DURING_DEPLOYMENT=false`, `PORT=8080`. Only the vendor's read-only key goes to the host; its spending key stays offline.
 
 ## Check it on devnet
 
