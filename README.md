@@ -38,10 +38,11 @@ pnpm typecheck && pnpm test
 ./scripts/localnet.sh        # zolana dev start; returns when ready, runs in background
 pnpm --filter @ringstack/core smoke
 
-# Further localnet checks (`pnpm --filter @ringstack/core e2e` runs all four; CI does too)
+# Further localnet checks (`pnpm --filter @ringstack/core e2e` runs all five; CI does too)
 pnpm --filter @ringstack/core receipt:e2e   # receipts issue/open/verify
 pnpm --filter @ringstack/core memo:e2e      # encrypted transfer memos
 pnpm --filter @ringstack/core session:e2e   # register, merge, deposit, transfer, withdraw
+pnpm --filter @ringstack/core ringpay:e2e   # pay a ringpay: request, verify the receipt
 
 ./scripts/localnet.sh --stop
 ```
@@ -51,6 +52,7 @@ pnpm --filter @ringstack/core session:e2e   # register, merge, deposit, transfer
 - [Platform notes](docs/platform-notes.md) — what Helius Privacy provides, its primitives, constraints, and version pinning.
 - [Milestone 0 SDK findings](docs/spikes/m0-sdk-findings.md) — receipts, batching, memos, versions.
 - [Receipt spec](spec/receipt.md)
+- [RingPay payment request URI spec](spec/ringpay-uri.md)
 
 ## License
 

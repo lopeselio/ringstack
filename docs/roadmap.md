@@ -43,7 +43,7 @@ spec/
 - [x] ringd: HMAC webhooks with retry + idempotency (`ringd-id`, `@ringstack/ringd-client` `verifyWebhook`).
 
 ## Milestone 2: RingPay + payroll
-- [ ] `ringpay:` URI spec + parser; memo schema with `order`.
+- [x] `ringpay:` URI spec + parser; memo schema with `order` ([spec](../spec/ringpay-uri.md); `payRequest` pays a request and returns a receipt; `ringpay:e2e`).
 - [ ] Checkout demo: request → payment → ringd webhook → order marked paid.
 - [ ] Payroll `plan` (CSV, registry check, batching) and `run` (concurrent, resumable).
 - [ ] Payroll receipts + audit bundle.
