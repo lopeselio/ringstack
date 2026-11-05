@@ -24,8 +24,8 @@ importers:
   apps/checkout-api:
     dependencies:
       '@heliuslabs/zolana':
-        specifier: 0.6.0-alpha
-        version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
       '@nestjs/common':
         specifier: 12.3.3
         version: 12.3.3(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -88,8 +88,8 @@ importers:
   apps/payroll:
     dependencies:
       '@heliuslabs/zolana':
-        specifier: 0.6.0-alpha
-        version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
       '@ringstack/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -100,8 +100,8 @@ importers:
   apps/ringd:
     dependencies:
       '@heliuslabs/zolana':
-        specifier: 0.6.0-alpha
-        version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
       '@ringstack/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -124,8 +124,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@heliuslabs/zolana':
-        specifier: 0.6.0-alpha
-        version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
       '@ringstack/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -140,8 +140,8 @@ importers:
   packages/core:
     dependencies:
       '@heliuslabs/zolana':
-        specifier: 0.6.0-alpha
-        version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
       '@noble/ciphers':
         specifier: 2.4.0
         version: 2.4.0
@@ -360,8 +360,8 @@ packages:
   '@fontsource/martian-mono@5.3.0':
     resolution: {integrity: sha512-0iTnU6SZi6j5z4ymwlZGep6akvp/xWm+r+WyZO9hMfDJWX+dsFLipQp9zO02S0lkUQ+zAahcZNy3XLiNP+gVqQ==}
 
-  '@heliuslabs/zolana@0.6.0-alpha':
-    resolution: {integrity: sha512-h8lXv/6BQbPg+a/lLNop7H4adfynZRd2Ri6AJS0DS70evi3Kgu0S0NMkq6sHguX7DSFsKilPDVs1G1nwkin37A==}
+  '@heliuslabs/zolana@0.8.0-alpha':
+    resolution: {integrity: sha512-WryBQc56YneAPNpw9gF0bPoT8uZGEUbOzsxOEOCt5zCWuQ4ds5sdNShPfRI2IZLzvsE0uPvEc419RPoBhTyJ4A==}
     engines: {node: '>=24'}
     peerDependencies:
       '@solana/kit': ^8.3.0
@@ -2357,7 +2357,7 @@ snapshots:
 
   '@fontsource/martian-mono@5.3.0': {}
 
-  '@heliuslabs/zolana@0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)':
+  '@heliuslabs/zolana@0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)':
     dependencies:
       '@hpke/core': 1.9.0
       '@lightprotocol/hasher.rs': 0.2.1

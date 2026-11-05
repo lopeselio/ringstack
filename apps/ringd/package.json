@@ -13,7 +13,7 @@
     "e2e": "tsx --env-file-if-exists=../../.env scripts/e2e.ts"
   },
   "dependencies": {
-    "@heliuslabs/zolana": "0.6.0-alpha",
+    "@heliuslabs/zolana": "0.8.0-alpha",
     "@ringstack/core": "workspace:*",
     "@ringstack/ringd-client": "workspace:*",
     "@solana/kit": "^8.6.0",
