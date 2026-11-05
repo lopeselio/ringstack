@@ -8,7 +8,8 @@
     "./receipt": "./src/receipt.ts",
     "./receipt-open": "./src/receipt-open.ts",
     "./memo": "./src/memo.ts",
-    "./ringpay": "./src/ringpay.ts"
+    "./ringpay": "./src/ringpay.ts",
+    "./payment-proof": "./src/payment-proof.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -23,6 +24,8 @@
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.6.0-alpha",
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0",
     "@solana-program/system": "0.14.1",
     "@solana-program/token": "0.16.1",
     "@solana/kit": "^8.3.0"

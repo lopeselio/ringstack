@@ -142,6 +142,12 @@ importers:
       '@heliuslabs/zolana':
         specifier: 0.6.0-alpha
         version: 0.6.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+      '@noble/ciphers':
+        specifier: 2.4.0
+        version: 2.4.0
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
       '@solana-program/system':
         specifier: 0.14.1
         version: 0.14.1(@solana/kit@8.6.0(typescript@5.9.3))

@@ -9,3 +9,4 @@ export * from "./ringpay.ts";
 export * from "./ringpay-pay.ts";
 export * from "./utxos.ts";
 export * from "./merge.ts";
+export * from "./payment-proof.ts";
