@@ -18,10 +18,11 @@ import {
   type ZolanaClientConfig,
 } from "@heliuslabs/zolana";
 
-import type { WalletConfig } from "./config.ts";
-import { newEvents } from "./events.ts";
+import { DEFAULT_DELIVERY, type DeliveryConfig, type WalletConfig, type WebhookConfig } from "./config.ts";
+import { newEvents, type RingdEvent } from "./events.ts";
 import { readKeyFile, type WatchKeys } from "./keyfile.ts";
 import type { RingdStore, StoredEvent } from "./store.ts";
+import { Dispatcher, routeFor, type DispatchResult } from "./webhooks.ts";
 
 type Client = Awaited<ReturnType<typeof createZolanaClient>>;
 
@@ -67,7 +68,7 @@ class WatchedWallet {
     return this.#firstSync;
   }
 
-  async cycle(client: Client, store: RingdStore): Promise<StoredEvent[]> {
+  async cycle(client: Client, store: RingdStore, route: (e: RingdEvent) => readonly string[]): Promise<StoredEvent[]> {
     await syncPersistedWallet({
       client,
       wallet: this.wallet,
@@ -77,7 +78,7 @@ class WatchedWallet {
     });
     const events = newEvents(this.name, this.wallet, store.knownEventIds(this.name), { backfill: this.#firstSync });
     this.#firstSync = false;
-    return store.appendEvents(events);
+    return store.appendEvents(events, route);
   }
 }
 
@@ -94,6 +95,15 @@ export interface DaemonOptions {
   readonly pollIntervalMs: number;
   readonly log?: Logger;
   readonly onEvent?: (e: StoredEvent) => void | Promise<void>;
+  readonly webhooks?: readonly WebhookConfig[];
+  readonly delivery?: DeliveryConfig;
+  /** For tests. */
+  readonly fetch?: typeof fetch;
+}
+
+export interface CycleResult {
+  readonly events: StoredEvent[];
+  readonly dispatch: DispatchResult;
 }
 
 export class Daemon {
@@ -101,12 +111,17 @@ export class Daemon {
   readonly #log: Logger;
   #client?: Client;
   #watched: WatchedWallet[] = [];
+  readonly #dispatcher: Dispatcher;
+  readonly #route: (e: RingdEvent) => readonly string[];
   #stopped = false;
   #wake?: () => void;
 
   constructor(opts: DaemonOptions) {
     this.#opts = opts;
     this.#log = opts.log ?? jsonLogger;
+    const webhooks = opts.webhooks ?? [];
+    this.#route = routeFor(webhooks);
+    this.#dispatcher = new Dispatcher(opts.store, webhooks, opts.delivery ?? DEFAULT_DELIVERY, this.#log, opts.fetch);
   }
 
   async start(): Promise<void> {
@@ -118,14 +133,17 @@ export class Daemon {
     }
   }
 
-  /** One pass over every wallet. A failing wallet is logged and does not block the others. */
-  async runOnce(): Promise<StoredEvent[]> {
+  /**
+   * One pass: sync every wallet (a failing wallet is logged and does not block
+   * the others), then deliver due webhooks, including retries of older events.
+   */
+  async runOnce(): Promise<CycleResult> {
     const client = this.#client;
     if (client === undefined) throw new Error("daemon not started");
     const all: StoredEvent[] = [];
     for (const w of this.#watched) {
       try {
-        const added = await w.cycle(client, this.#opts.store);
+        const added = await w.cycle(client, this.#opts.store, this.#route);
         for (const e of added) {
           this.#log.info("event", { seq: e.seq, ...e.event });
           await this.#opts.onEvent?.(e);
@@ -135,7 +153,13 @@ export class Daemon {
         this.#log.error("sync failed", { wallet: w.name, error: (err as Error).message });
       }
     }
-    return all;
+    const dispatch = await this.#dispatcher.runOnce();
+    return { events: all, dispatch };
+  }
+
+  /** Deliver due webhooks without syncing. */
+  dispatch(): Promise<DispatchResult> {
+    return this.#dispatcher.runOnce();
   }
 
   /** Poll until `stop()`. */
