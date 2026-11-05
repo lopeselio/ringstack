@@ -46,7 +46,8 @@ spec/
 - [x] `ringpay:` URI spec + parser; memo schema with `order` ([spec](../spec/ringpay-uri.md); `payRequest` pays a request and returns a receipt; `ringpay:e2e`).
 - [x] Checkout demo: request → payment → ringd webhook → order marked paid ([apps/checkout-demo](../apps/checkout-demo): Next.js shop + NestJS/Fastify API; run through in the browser on localnet).
 - [x] Payroll `plan` (CSV, registry check, batching) and `run` (concurrent, resumable) ([apps/payroll](../apps/payroll); `payroll e2e`).
-- [ ] Payroll receipts + audit bundle. Note: one transaction key opens a whole batch, so per-payee receipts need a different design than RingPay receipts.
+- [x] Payroll audit bundle: per-run receipts for the accountant, verifiable with no keys (`payroll audit` / `verify-audit`).
+- [ ] Payroll per-payee proof. One transaction key opens a whole batch, so payees need a proof built from their own output rather than a batch receipt.
 - [ ] ringd auto-merge.
 
 ## Milestone 3: Devnet release
