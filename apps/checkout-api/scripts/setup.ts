@@ -1,7 +1,8 @@
 /**
- * Localnet setup for the checkout demo (run with `./scripts/localnet.sh` up):
+ * Setup for the checkout demo on ZOLANA_NETWORK (devnet: API_KEY in the root
+ * .env and ZOLANA_FUNDER_KEYPAIR set, since the devnet faucet is closed):
  *   - merchant: new keypair, registered; ringd gets its read-only key file
- *   - customer: new keypair, registered, funded, 0.2 SOL deposited privately
+ *   - customer: new keypair, registered, funded, 0.05 SOL deposited privately
  *   - writes .env (API) and .demo/ringd.toml (ringd → API webhook)
  *
  *   pnpm --filter @ringstack/checkout-api demo:setup [--force]
@@ -11,8 +12,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { RingSession, clientConfigFromEnv, loadShieldedKeypair } from "@ringstack/core";
-import { lamports } from "@solana/kit";
+import { RingSession, clientConfigFromEnv, fund, loadShieldedKeypair, networkFromEnv } from "@ringstack/core";
 
 const root = resolve(import.meta.dirname, "..");
 const demo = join(root, ".demo");
@@ -33,7 +33,8 @@ function writeSolanaKeypair(path: string) {
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv({ ...process.env, ZOLANA_NETWORK: "localnet" }));
+const network = networkFromEnv();
+const client = await createZolanaClient(clientConfigFromEnv());
 
 const merchantKeyPath = join(demo, "merchant.json");
 const customerKeyPath = join(demo, "customer.json");
@@ -43,14 +44,14 @@ writeSolanaKeypair(customerKeyPath);
 const merchant = await RingSession.open(client, await loadShieldedKeypair(merchantKeyPath));
 const customer = await RingSession.open(client, await loadShieldedKeypair(customerKeyPath));
 for (const s of [merchant, customer]) {
-  await client.confirmTransaction(await client.solanaRpc.requestAirdrop(s.owner, lamports(2_000_000_000n)).send());
+  await fund(client, s.owner, s === customer ? 80_000_000n : 20_000_000n);
 }
 await merchant.register();
 // Registered so receipts can match the customer's change output to the chain too.
 await customer.register();
-await customer.deposit(200_000_000n);
+await customer.deposit(50_000_000n);
 console.log(`merchant  ${merchant.owner} (registered)`);
-console.log(`customer  ${customer.owner} (registered, 0.2 SOL private balance)`);
+console.log(`customer  ${customer.owner} (registered, 0.05 SOL private balance)`);
 
 // ringd holds only the merchant's viewing + nullifier keys.
 const { exportKeyFile } = await import("../../ringd/src/keyfile.ts");
@@ -60,10 +61,10 @@ const secret = randomBytes(32).toString("hex");
 writeFileSync(
   join(root, ".env"),
   [
-    "# Written by demo:setup (localnet demo). Do not commit.",
+    `# Written by demo:setup (${network} demo). Do not commit.`,
     `MERCHANT_ADDRESS=${merchant.owner}`,
     `RINGD_WEBHOOK_SECRET=${secret}`,
-    "CLUSTER=localnet",
+    `CLUSTER=${network}`,
     "DATABASE=.demo/checkout.db",
     "DEMO_CUSTOMER_KEYPAIR=.demo/customer.json",
     "VERIFIER_URL=http://localhost:5173/",
@@ -73,7 +74,7 @@ writeFileSync(
 );
 writeFileSync(
   join(demo, "ringd.toml"),
-  `network = "localnet"
+  `network = "${network}"
 database = "./ringd.db"
 poll_interval_secs = 2
 

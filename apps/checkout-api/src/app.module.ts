@@ -11,7 +11,7 @@ import { WebhooksController } from "./webhooks.controller.ts";
 export interface AppOptions {
   readonly config: ApiConfig;
   readonly db: CheckoutDb;
-  /** Present only when demo payments are enabled (localnet). */
+  /** Present only when demo payments are enabled (localnet or devnet). */
   readonly demoPay?: DemoPay;
 }
 

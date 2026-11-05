@@ -5,7 +5,7 @@
  *   POST /orders {item}           create an order and its ringpay: request
  *   GET  /orders/:id              order status and matched payments
  *   POST /webhooks/ringd          ringd deliveries (HMAC-verified against the raw body)
- *   POST /demo/orders/:id/pay     localnet only: pay as the demo customer
+ *   POST /demo/orders/:id/pay     test networks only: pay as the demo customer
  */
 import "reflect-metadata";
 

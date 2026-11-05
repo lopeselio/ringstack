@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
-    "start": "tsx --env-file-if-exists=.env src/main.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env --env-file-if-exists=.env src/main.ts",
+    "start": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "ringd": "tsx --env-file=.env ../ringd/src/cli.ts run --config .demo/ringd.toml",
-    "demo:setup": "tsx scripts/setup.ts"
+    "ringd": "tsx --env-file-if-exists=../../.env --env-file=.env ../ringd/src/cli.ts run --config .demo/ringd.toml",
+    "demo:setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts"
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.8.0-alpha",

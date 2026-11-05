@@ -9,7 +9,7 @@ import type { DemoPay } from "./demo.controller.ts";
 const config = loadApiConfig();
 const db = new CheckoutDb(config.database);
 
-/** Demo customer wallet (localnet only): one session, payments serialized. */
+/** Demo customer wallet (test networks only): one session, payments serialized. */
 async function demoPayer(path: string): Promise<DemoPay> {
   const client = await createZolanaClient(clientConfigFromEnv({ ...process.env, ZOLANA_NETWORK: config.cluster }));
   const keypair: ShieldedKeypair = await loadShieldedKeypair(path);

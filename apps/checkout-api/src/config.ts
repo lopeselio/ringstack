@@ -1,5 +1,5 @@
 /**
- * Environment for the checkout API. `demo:setup` writes a localnet `.env`.
+ * Environment for the checkout API. `demo:setup` writes the `.env`.
  *
  *   MERCHANT_ADDRESS        registered Solana address that receives payments
  *   RINGD_WEBHOOK_SECRET    shared with ringd's [[webhook]] secret_env (≥ 16 chars)
@@ -7,7 +7,7 @@
  *   DATABASE                SQLite path                  (default ./checkout.db)
  *   PORT, HOST              listen address               (default 4000, 127.0.0.1)
  *   VERIFIER_URL            receipt verifier base URL    (default http://localhost:5173/)
- *   DEMO_CUSTOMER_KEYPAIR   localnet only: Solana keypair file the demo "pay" button spends from
+ *   DEMO_CUSTOMER_KEYPAIR   test networks only: Solana keypair file the demo "pay" button spends from
  */
 import { isAddress, type Address } from "@solana/kit";
 import type { Cluster } from "@ringstack/core/receipt";
@@ -31,7 +31,10 @@ export function loadApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
   const cluster = (env["CLUSTER"]?.trim() || "localnet") as Cluster;
   if (cluster !== "localnet" && cluster !== "devnet") throw new Error("CLUSTER must be localnet or devnet");
   const demo = env["DEMO_CUSTOMER_KEYPAIR"]?.trim();
-  if (demo && cluster !== "localnet") throw new Error("DEMO_CUSTOMER_KEYPAIR is only allowed on localnet");
+  // The demo payer spends from a server-held key: test money only, never mainnet.
+  if (demo && cluster !== "localnet" && cluster !== "devnet") {
+    throw new Error("DEMO_CUSTOMER_KEYPAIR is only allowed on localnet or devnet");
+  }
   return {
     merchant,
     webhookSecret,

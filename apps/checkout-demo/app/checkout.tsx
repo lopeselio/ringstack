@@ -141,7 +141,7 @@ export function Checkout() {
         </ul>
         {menu && (
           <p className="footnote">
-            Network: {menu.cluster}. Prices are in SOL so the demo runs on a local validator.
+            Network: {menu.cluster}. Prices are in test SOL; nothing here uses real money.
           </p>
         )}
       </section>
