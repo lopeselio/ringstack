@@ -1,7 +1,8 @@
 /**
  * Run the paid demo API.
  *
- *   VENDOR_KEY_FILE   read-only key file of the vendor (`ringd keys export`)
+ *   VENDOR_KEY_FILE   read-only key file of the vendor (`ringd keys export`), or
+ *   VENDOR_KEY        the same file's JSON content (for hosts with env-only secrets)
  *   VENDOR_ADDRESS    the vendor's registered Solana address
  *   ZOLANA_NETWORK    devnet (API_KEY from the root .env) or localnet
  *   PRICE             SOL per call (default 0.0005)
@@ -11,17 +12,18 @@
  * payments to the vendor but cannot move the vendor's funds.
  */
 import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { clientConfigFromEnv, networkFromEnv, readKeyFile } from "@ringstack/core";
+import { clientConfigFromEnv, networkFromEnv, parseKeyFile, readKeyFile } from "@ringstack/core";
 import { address } from "@solana/kit";
 
 import { createDemoApp } from "./app.ts";
 
 const keyFile = process.env["VENDOR_KEY_FILE"];
+const keyJson = process.env["VENDOR_KEY"];
 const recipient = process.env["VENDOR_ADDRESS"];
-if (!keyFile || !recipient) throw new Error("set VENDOR_KEY_FILE and VENDOR_ADDRESS");
+if ((!keyFile && !keyJson) || !recipient) throw new Error("set VENDOR_ADDRESS and VENDOR_KEY_FILE or VENDOR_KEY");
 
 await initializePoseidon();
-const keys = await readKeyFile(keyFile);
+const keys = keyJson ? parseKeyFile(keyJson) : await readKeyFile(keyFile!);
 const client = await createZolanaClient(clientConfigFromEnv());
 const app = createDemoApp({
   paywall: {
