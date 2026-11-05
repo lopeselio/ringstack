@@ -14,12 +14,26 @@
  *   [[wallet]]
  *   name = "shop"
  *   key_file = "./shop.ringd-key.json"
+ *
+ *   [[webhook]]
+ *   name = "orders"
+ *   url = "https://shop.example/hooks/ringd"   # http:// only for loopback hosts
+ *   secret_env = "RINGD_WEBHOOK_SECRET"        # env var holding the HMAC secret
+ *   wallets = ["shop"]                         # optional filter
+ *   events = ["payment.received"]              # optional filter
+ *
+ *   [delivery]                                 # optional
+ *   timeout_secs = 10
+ *   max_attempts = 12
+ *   retry_base_secs = 5                        # backoff: base * 2^(attempt-1), capped
+ *   retry_max_secs = 3600
  */
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import type { ZolanaClientConfig } from "@heliuslabs/zolana";
 import { clientConfig, type Network } from "@ringstack/core";
+import type { RingdEventType } from "@ringstack/ringd-client";
 import { parse } from "smol-toml";
 
 export interface WalletConfig {
@@ -27,12 +41,41 @@ export interface WalletConfig {
   readonly keyFile: string;
 }
 
+export interface WebhookConfig {
+  readonly name: string;
+  readonly url: string;
+  readonly secret: string;
+  /** Only these wallets; all when absent. */
+  readonly wallets?: readonly string[];
+  /** Only these event types; all when absent. */
+  readonly events?: readonly RingdEventType[];
+}
+
+export interface DeliveryConfig {
+  readonly timeoutMs: number;
+  readonly maxAttempts: number;
+  readonly retryBaseMs: number;
+  readonly retryMaxMs: number;
+}
+
+export const DEFAULT_DELIVERY: DeliveryConfig = {
+  timeoutMs: 10_000,
+  maxAttempts: 12,
+  retryBaseMs: 5_000,
+  retryMaxMs: 3_600_000,
+};
+
+const EVENT_TYPES: readonly RingdEventType[] = ["payment.received", "payment.sent", "utxo.merged", "wallet.activity"];
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 export interface RingdConfig {
   readonly network: Network;
   readonly database: string;
   readonly pollIntervalMs: number;
   readonly client: ZolanaClientConfig;
   readonly wallets: readonly WalletConfig[];
+  readonly webhooks: readonly WebhookConfig[];
+  readonly delivery: DeliveryConfig;
 }
 
 const NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -73,13 +116,87 @@ export function parseConfig(text: string, baseDir: string, env: NodeJS.ProcessEn
   const names = new Set(wallets.map((w) => w.name));
   if (names.size !== wallets.length) throw new Error("wallet names must be unique");
 
+  const webhooks = parseWebhooks(doc["webhook"], names, env);
+  const delivery = parseDelivery((doc["delivery"] ?? {}) as Record<string, unknown>);
+
   return {
     network,
     database: resolve(baseDir, str(doc, "database", "config") ?? "./ringd.db"),
     pollIntervalMs: interval * 1000,
     client: clientConfig({ network, apiKey, overrides: stripUndefined(overrides) }),
     wallets,
+    webhooks,
+    delivery,
   };
+}
+
+function stringList(v: unknown, where: string): string[] | undefined {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.length === 0 || v.some((x) => typeof x !== "string")) {
+    throw new Error(`${where} must be a non-empty list of strings`);
+  }
+  return v as string[];
+}
+
+function parseWebhooks(raw: unknown, walletNames: ReadonlySet<string>, env: NodeJS.ProcessEnv): WebhookConfig[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) throw new Error("[[webhook]] must be an array of tables");
+  const hooks = raw.map((w: Record<string, unknown>, i): WebhookConfig => {
+    const where = `webhook[${i}]`;
+    const name = str(w, "name", where);
+    if (name === undefined || !NAME.test(name)) throw new Error(`${where}.name must match ${NAME}`);
+    const url = str(w, "url", where);
+    if (url === undefined) throw new Error(`${where}.url is required`);
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`${where}.url is not a URL`);
+    }
+    if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && LOOPBACK.has(parsed.hostname))) {
+      throw new Error(`${where}.url must be https (http is allowed only for localhost)`);
+    }
+    const secretEnv = str(w, "secret_env", where);
+    if (secretEnv === undefined) throw new Error(`${where}.secret_env is required`);
+    const secret = env[secretEnv];
+    if (secret === undefined || secret.length < 16) {
+      throw new Error(`${where}: env ${secretEnv} must hold a secret of at least 16 characters`);
+    }
+    const wallets = stringList(w["wallets"], `${where}.wallets`);
+    for (const name of wallets ?? []) {
+      if (!walletNames.has(name)) throw new Error(`${where}.wallets: unknown wallet ${name}`);
+    }
+    const events = stringList(w["events"], `${where}.events`) as RingdEventType[] | undefined;
+    for (const e of events ?? []) {
+      if (!EVENT_TYPES.includes(e)) throw new Error(`${where}.events: unknown event type ${e}`);
+    }
+    return {
+      name,
+      url,
+      secret,
+      ...(wallets === undefined ? {} : { wallets }),
+      ...(events === undefined ? {} : { events }),
+    };
+  });
+  if (new Set(hooks.map((h) => h.name)).size !== hooks.length) throw new Error("webhook names must be unique");
+  return hooks;
+}
+
+function parseDelivery(t: Record<string, unknown>): DeliveryConfig {
+  const num = (key: string, fallback: number, min: number) => {
+    const v = t[key];
+    if (v === undefined) return fallback;
+    if (typeof v !== "number" || !(v >= min)) throw new Error(`delivery.${key} must be a number ≥ ${min}`);
+    return v;
+  };
+  const delivery: DeliveryConfig = {
+    timeoutMs: num("timeout_secs", DEFAULT_DELIVERY.timeoutMs / 1000, 0.1) * 1000,
+    maxAttempts: Math.floor(num("max_attempts", DEFAULT_DELIVERY.maxAttempts, 1)),
+    retryBaseMs: num("retry_base_secs", DEFAULT_DELIVERY.retryBaseMs / 1000, 0.01) * 1000,
+    retryMaxMs: num("retry_max_secs", DEFAULT_DELIVERY.retryMaxMs / 1000, 0.01) * 1000,
+  };
+  if (delivery.retryMaxMs < delivery.retryBaseMs) throw new Error("delivery.retry_max_secs must be ≥ retry_base_secs");
+  return delivery;
 }
 
 export async function loadConfig(path: string): Promise<RingdConfig> {

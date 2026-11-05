@@ -12,3 +12,16 @@ poll_interval_secs = 5
 [[wallet]]
 name = "shop"
 key_file = "./shop.ringd-key.json"   # from `ringd keys export`
+
+# [[webhook]]
+# name = "orders"
+# url = "https://shop.example/hooks/ringd"   # http:// only for localhost
+# secret_env = "RINGD_WEBHOOK_SECRET"        # env var holding the HMAC secret (≥ 16 chars)
+# events = ["payment.received"]              # optional filter
+# wallets = ["shop"]                         # optional filter
+
+# [delivery]                                 # optional; defaults shown
+# timeout_secs = 10
+# max_attempts = 12
+# retry_base_secs = 5
+# retry_max_secs = 3600
