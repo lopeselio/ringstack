@@ -47,7 +47,7 @@ spec/
 - [x] Checkout demo: request → payment → ringd webhook → order marked paid ([apps/checkout-demo](../apps/checkout-demo): Next.js shop + NestJS/Fastify API; run through in the browser on localnet).
 - [x] Payroll `plan` (CSV, registry check, batching) and `run` (concurrent, resumable) ([apps/payroll](../apps/payroll); `payroll e2e`).
 - [x] Payroll audit bundle: per-run receipts for the accountant, verifiable with no keys (`payroll audit` / `verify-audit`).
-- [ ] Payroll per-payee proof. One transaction key opens a whole batch, so payees need a proof built from their own output rather than a batch receipt.
+- [x] Payroll per-payee proof: the payee proves their own output from their own wallet (`ringproof1:`, [spec](../spec/payment-proof.md); `payroll prove` / `verify-proof`, verifier page).
 - [x] ringd auto-merge without the spending key (key file + separate fee payer; memo UTXOs included).
 
 ## Milestone 3: Devnet release
