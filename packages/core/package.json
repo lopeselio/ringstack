@@ -14,13 +14,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "tsx scripts/smoke.ts",
-    "receipt:e2e": "tsx scripts/receipt-e2e.ts",
-    "memo:e2e": "tsx scripts/memo-e2e.ts",
-    "session:e2e": "tsx scripts/session-e2e.ts",
-    "e2e": "tsx scripts/smoke.ts && tsx scripts/receipt-e2e.ts && tsx scripts/memo-e2e.ts && tsx scripts/session-e2e.ts && tsx scripts/ringpay-e2e.ts",
-    "receipt:demo": "tsx scripts/receipt-demo.ts",
-    "ringpay:e2e": "tsx scripts/ringpay-e2e.ts"
+    "smoke": "tsx --env-file-if-exists=../../.env scripts/smoke.ts",
+    "receipt:e2e": "tsx --env-file-if-exists=../../.env scripts/receipt-e2e.ts",
+    "memo:e2e": "tsx --env-file-if-exists=../../.env scripts/memo-e2e.ts",
+    "session:e2e": "tsx --env-file-if-exists=../../.env scripts/session-e2e.ts",
+    "e2e": "tsx --env-file-if-exists=../../.env scripts/smoke.ts && tsx --env-file-if-exists=../../.env scripts/receipt-e2e.ts && tsx --env-file-if-exists=../../.env scripts/memo-e2e.ts && tsx --env-file-if-exists=../../.env scripts/session-e2e.ts && tsx --env-file-if-exists=../../.env scripts/ringpay-e2e.ts",
+    "receipt:demo": "tsx --env-file-if-exists=../../.env scripts/receipt-demo.ts",
+    "ringpay:e2e": "tsx --env-file-if-exists=../../.env scripts/ringpay-e2e.ts"
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.6.0-alpha",

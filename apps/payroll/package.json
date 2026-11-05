@@ -7,8 +7,8 @@
     "payroll": "./src/cli.ts"
   },
   "scripts": {
-    "payroll": "tsx src/cli.ts",
-    "e2e": "tsx scripts/e2e.ts",
+    "payroll": "tsx --env-file-if-exists=../../.env src/cli.ts",
+    "e2e": "tsx --env-file-if-exists=../../.env scripts/e2e.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

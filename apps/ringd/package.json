@@ -7,10 +7,10 @@
     "ringd": "./src/cli.ts"
   },
   "scripts": {
-    "ringd": "tsx src/cli.ts",
+    "ringd": "tsx --env-file-if-exists=../../.env src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "tsx scripts/e2e.ts"
+    "e2e": "tsx --env-file-if-exists=../../.env scripts/e2e.ts"
   },
   "dependencies": {
     "@heliuslabs/zolana": "0.6.0-alpha",
