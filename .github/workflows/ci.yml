@@ -18,3 +18,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+
+  localnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ZOLANA_TAG: v0.6.0-alpha
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Release artifacts (validator, programs, Photon, prover) and the lazily
+      # downloaded proving keys; all pinned to the release tag.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.config/zolana
+          key: zolana-${{ runner.os }}-${{ env.ZOLANA_TAG }}
+      - run: ./scripts/install-zolana.sh
+      - run: ./scripts/localnet.sh
+      - run: ./scripts/wait-localnet.sh 300
+      - run: pnpm --filter @ringstack/core e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localnet-logs
+          path: test-ledger/*.log
+          if-no-files-found: ignore
+      - if: always()
+        run: .zolana/bin/zolana dev start --stop || true
