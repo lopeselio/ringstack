@@ -3,7 +3,7 @@
 Pay a list of people privately from a treasury: amounts and memos are encrypted, and up to 15 payees share one transaction.
 
 ```
-payroll.csv ──plan──▶ plan.json (review) ──run──▶ batches confirmed, plan.state.json
+payroll.csv ──plan──▶ plan.json (review) ──run──▶ plan.state.json ──audit──▶ audit-<planId>/ (for the accountant)
 ```
 
 ## Use
@@ -15,6 +15,8 @@ pnpm --filter @ringstack/payroll payroll plan  --csv payroll.csv --keypair treas
 pnpm --filter @ringstack/payroll payroll split --keypair treasury.json --parts 2   # optional, for concurrency
 pnpm --filter @ringstack/payroll payroll run   --plan plan.json --keypair treasury.json --concurrency 2
 pnpm --filter @ringstack/payroll payroll status --plan plan.json
+pnpm --filter @ringstack/payroll payroll audit  --plan plan.json --keypair treasury.json   # after the run
+pnpm --filter @ringstack/payroll payroll verify-audit --dir audit-<planId>               # what the accountant runs
 ```
 
 `payroll.csv`:
@@ -44,10 +46,26 @@ GNhaRndM8JGXUhsfgWXGR7XdcWnioBbuZueyaJ2zsYsD,1250.50,Payroll 2026-11
   - otherwise → wait until one of the above.
 - `status` shows each batch's state and signature. Rerunning a finished plan does nothing.
 
+## audit
+
+Builds a bundle that discloses exactly one pay run, for an accountant or auditor:
+
+| File | Contents |
+|---|---|
+| `manifest.json` | Plan id, cluster, treasury, mint, totals, and the SHA-256 of every other file |
+| `batches.json` | One entry per transaction: signature, slot, and its receipt (`ringrcpt1:…`, that transaction's viewing key) |
+| `payments.csv` | One row per payee: CSV line, batch, recipient, amount, memo, signature, output slot, `verified` |
+| `README.txt` | How to check it |
+
+- `audit` needs the treasury keypair (it derives each transaction's key) and refuses to run before every batch is confirmed. While building, it checks every payment against the chain.
+- `verify-audit` needs **no keys**, only the bundle and network access. It checks the file hashes, decrypts each transaction with its receipt, looks every payee up in the user registry, and requires each row to match an output whose commitment is verified, with the same amount and memo. Editing a row is caught even if the manifest hash is updated to match.
+- **What it discloses:** the pay run's transactions and nothing else: no wallet keys, no other treasury history. That includes the treasury's change outputs, which reveal how much the spent UTXOs held.
+- **Limits:** recipients are matched through their *current* registry record, so a payee who later rotates their viewing key can no longer be matched. Individual receipts also open in the [verifier](../verifier).
+
 ## Privacy notes
 
 - Amounts and memos are encrypted. The treasury and the payees are visible as transaction participants, so observers can see *who* is on payroll, not *how much*.
-- **One transaction key opens a whole batch.** A RingPay-style receipt for a batch transaction would show every payee in it. Per-payee receipts therefore need a different design (next roadmap item).
+- **One transaction key opens a whole batch.** That is why the receipts live in the audit bundle (for someone entitled to see the whole run) rather than going to each payee: a payee handed a batch receipt would see their colleagues' pay. A per-payee proof needs a different design (on the roadmap).
 - **Memo payments and SDK wallets:** until [helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543) is fixed, the SDK's built-in transfer, withdraw and merge skip UTXOs that carry a memo. Payees need a wallet that spends them through the lower-level builder (such as `RingSession` in `@ringstack/core`). Leave `memo` empty if that is a problem.
 
 ## Check on localnet
@@ -56,4 +74,4 @@ GNhaRndM8JGXUhsfgWXGR7XdcWnioBbuZueyaJ2zsYsD,1250.50,Payroll 2026-11
 ./scripts/localnet.sh && pnpm --filter @ringstack/payroll e2e
 ```
 
-This covers 17 payees plus one unregistered, one payee paid twice, memos, a 2-UTXO treasury run with concurrency 2, a simulated crash after a batch lands (the rerun reconciles it from the saved signature), a saved attempt that expired (retried once), and exact final balances for every payee.
+This covers 17 payees plus one unregistered, one payee paid twice, memos, a 2-UTXO treasury run with concurrency 2, a simulated crash after a batch lands (the rerun reconciles it from the saved signature), a saved attempt that expired (retried once), exact final balances for every payee, and an audit bundle that verifies with no keys and catches a forged amount even when the manifest hash is updated to match.
