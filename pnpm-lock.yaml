@@ -29,6 +29,9 @@ importers:
       '@ringstack/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@ringstack/ringd-client':
+        specifier: workspace:*
+        version: link:../../packages/ringd-client
       '@solana/kit':
         specifier: ^8.6.0
         version: 8.6.0(typescript@5.9.3)
@@ -72,6 +75,8 @@ importers:
       '@solana/kit':
         specifier: ^8.3.0
         version: 8.6.0(typescript@5.9.3)
+
+  packages/ringd-client: {}
 
 packages:
 

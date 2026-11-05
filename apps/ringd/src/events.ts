@@ -8,30 +8,9 @@
 import type { Wallet } from "@heliuslabs/zolana";
 import type { PrivateTransaction } from "@heliuslabs/zolana/transaction";
 import { decodeMemo } from "@ringstack/core/memo";
+import type { RingdEvent, RingdEventType } from "@ringstack/ringd-client";
 
-export type RingdEventType = "payment.received" | "payment.sent" | "utxo.merged" | "wallet.activity";
-
-export interface RingdEvent {
-  /** `<signature>:<index>`, unique within a wallet. */
-  readonly id: string;
-  readonly type: RingdEventType;
-  readonly wallet: string;
-  readonly signature: string;
-  readonly slot: string;
-  readonly kind: PrivateTransaction["kind"];
-  readonly direction: PrivateTransaction["direction"];
-  /** Mint address. */
-  readonly asset: string;
-  /** Base units, as a decimal string. */
-  readonly amount: string;
-  /** Decrypted memo of the received output, when it carries one. */
-  readonly memo?: string;
-  /** Hex of the counterparty's compressed viewing key, when the SDK knows it. */
-  readonly counterpartyViewingKey?: string;
-  /** True for events found on a wallet's first sync (history from before ringd ran). */
-  readonly backfill: boolean;
-  readonly createdAt: string;
-}
+export type { RingdEvent, RingdEventType } from "@ringstack/ringd-client";
 
 export function eventType(row: Pick<PrivateTransaction, "kind" | "direction">): RingdEventType {
   if (row.kind === "merge") return "utxo.merged";
