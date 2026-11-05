@@ -63,6 +63,14 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 - `Merge.fromKeypair(keypair, inputs)` reads only `keypair.shieldedAddress()` and `keypair.nullifierKey()` (and destroys the key it gets), so `core/src/merge.ts` `buildMerge` passes a view of `{ address, nullifierKey }` instead of a full keypair. This leans on SDK internals; recheck on upgrades.
 - `ringd e2e`: three memo payments merged into one plain UTXO from the key file and a separate fee payer; the owner's SOL balance was unchanged.
 
+## Upgrade to zolana 0.8 (2026-11-05)
+
+- Devnet moved to v0.7/v0.8 (finalized ceremony proving keys; per-tree fees). A 0.6.0-alpha client's attestation to the Devnet-e prover is refused (`HTTP 400 tee_required`), so 0.6 cannot prove on devnet.
+- 0.8 needs no code changes to compile here. Devnet config becomes one Helius RPC URL (indexer and prover under `/v1/spr`) plus `proverTee: SignedTeePolicy.forNetwork("devnet")`, replacing our pinned Nitro measurements.
+- 0.8 checks the prover's proving keys against its pinned catalog, so it refuses the v0.6 local prover (`transfer_confidential_1_2` hash mismatch). zolana 0.8 publishes no CLI/prover binaries; zolana-examples builds them from source. Integration tests moved to devnet (`.github/workflows/devnet.yml`).
+- The internals our workarounds rely on are unchanged in 0.8: `isPlainUtxo` still rejects memos (#543 open), `Merge.fromKeypair` reads only the address and nullifier key, and the slot cipher labels (`TSPP/hpke/`, `TSPP/tx`) are the same.
+- Every suite passes on devnet; see [devnet.md](../devnet.md).
+
 ## Localnet
 
 - `zolana dev start` downloads programs, the account snapshot, the prover, and Photon from the pinned release, sha256-verified against a lockfile embedded in the CLI, and caches them in `~/.config/zolana/cache/<tag>/`.

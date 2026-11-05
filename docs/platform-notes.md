@@ -84,7 +84,7 @@ Writing a ZK program means: gnark circuit → trusted setup / proving key → ve
 ## SDKs & versions
 
 - TS: `@heliuslabs/zolana` (+ `@solana/kit`). Rust: `zolana-client`, `zolana-interface`, `zolana-program`, `zolana-keypair`, `zolana-transaction`.
-- **Version drift:** docs reference `v0.5.0-alpha` and SPP `sppU489D7A4U1exNo1oeMGZtLEofq3a6o2fR7UeoWB6`. The examples repo now targets **`v0.6.0-alpha`** with shielded-pool program **`ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`**, and earlier notes are not migrated. **Pin v0.6.0-alpha.**
+- **Version drift:** docs reference `v0.5.0-alpha` and SPP `sppU489D7A4U1exNo1oeMGZtLEofq3a6o2fR7UeoWB6`. The shielded-pool program is now **`ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`**. Devnet runs **v0.8.0** (finalized ceremony keys, per-tree fees) and only accepts 0.8 clients. **Pin `@heliuslabs/zolana@0.8.0-alpha`** (upgraded from 0.6.0-alpha on 2026-11-05; see [devnet.md](devnet.md)).
 - User Registry: the v0.6.0-alpha SDK uses **`regy3WAeRXMYuMYxr5iK3Bf9Arr3PcxGxyzAddbiqDQ`**. The docs list `regyS5rkAcw2YzDJCmTwCTHs2s246FXxbmuRZ42u2PD`, an older deployment; both are deployed on devnet (checked 2026-11-05), and the SDK only talks to `regy3W…`.
 
 ## Upstream work in flight (avoid duplicating)
