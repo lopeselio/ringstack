@@ -5,9 +5,13 @@
  * id, so the same row always yields the same event; together with the wallet
  * name it is the idempotency key for storage and webhook delivery.
  */
-import type { Wallet } from "@heliuslabs/zolana";
+import { ViewingKey, type Wallet } from "@heliuslabs/zolana";
+import { bytes32 } from "@heliuslabs/zolana/keypair";
 import type { PrivateTransaction } from "@heliuslabs/zolana/transaction";
-import { decodeMemo } from "@ringstack/core/memo";
+import { decodeMemo, receivedMemos } from "@ringstack/core/memo";
+import { fetchShieldedTransaction, type ShieldedTransactionReader } from "@ringstack/core/receipt-open";
+import type { WatchKeys } from "@ringstack/core";
+import type { Signature } from "@solana/kit";
 import type { RingdEvent, RingdEventType } from "@ringstack/ringd-client";
 
 export type { RingdEvent, RingdEventType } from "@ringstack/ringd-client";
@@ -23,7 +27,7 @@ export function eventId(row: Pick<PrivateTransaction, "id">): string {
   return `${row.id.signature}:${row.id.index}`;
 }
 
-/** Memos by leaf index, for matching to received rows (whose index is the leaf index). */
+/** Legacy memos (inside outputs) by leaf index, for matching to received rows (whose index is the leaf index). */
 function memosByLeaf(wallet: Wallet): Map<bigint, string> {
   const out = new Map<bigint, string>();
   for (const entry of wallet.utxos()) {
@@ -33,23 +37,63 @@ function memosByLeaf(wallet: Wallet): Map<bigint, string> {
   return out;
 }
 
+function pendingRows(wallet: Wallet, known: ReadonlySet<string>) {
+  return wallet
+    .privateTransactions()
+    .filter((row) => !known.has(eventId(row)))
+    .sort((a, b) => (a.id.slot === b.id.slot ? Number(a.id.index - b.id.index) : a.id.slot < b.id.slot ? -1 : 1));
+}
+
+/**
+ * Memo messages for the received rows not yet in `known`, keyed by event id.
+ * Memos travel as encrypted transaction messages (see @ringstack/core/memo),
+ * which the wallet sync does not keep, so each new payment's transaction is
+ * fetched once and its messages decrypted with the watched viewing key.
+ * Throws if a transaction cannot be fetched, so the cycle retries rather than
+ * emit a payment without its order memo.
+ */
+export async function messageMemos(
+  client: ShieldedTransactionReader,
+  wallet: Wallet,
+  keys: WatchKeys,
+  known: ReadonlySet<string>,
+): Promise<Map<string, string>> {
+  const signatures = new Set(
+    pendingRows(wallet, known)
+      .filter((row) => row.direction === "inbound")
+      .map((row) => row.id.signature),
+  );
+  const out = new Map<string, string>();
+  if (signatures.size === 0) return out;
+  const viewingKey = ViewingKey.fromBytes(bytes32(keys.viewingSecret.slice()));
+  try {
+    for (const signature of signatures) {
+      const tx = await fetchShieldedTransaction(client, signature as Signature);
+      for (const [leaf, memo] of receivedMemos(tx, keys.address, viewingKey)) out.set(`${signature}:${leaf}`, memo);
+    }
+  } finally {
+    viewingKey.destroy();
+  }
+  return out;
+}
+
 /** Events for history rows whose ids are not in `known`, oldest first. */
 export function newEvents(
   walletName: string,
   wallet: Wallet,
   known: ReadonlySet<string>,
-  options: Readonly<{ backfill: boolean; now?: Date }>,
+  options: Readonly<{ backfill: boolean; now?: Date; messageMemos?: ReadonlyMap<string, string> }>,
 ): RingdEvent[] {
   const createdAt = (options.now ?? new Date()).toISOString();
-  const rows = wallet
-    .privateTransactions()
-    .filter((row) => !known.has(eventId(row)))
-    .sort((a, b) => (a.id.slot === b.id.slot ? Number(a.id.index - b.id.index) : a.id.slot < b.id.slot ? -1 : 1));
+  const rows = pendingRows(wallet, known);
   if (rows.length === 0) return [];
 
   const memos = memosByLeaf(wallet);
   return rows.map((row): RingdEvent => {
-    const memo = row.direction === "inbound" ? memos.get(row.id.index) : undefined;
+    const memo =
+      row.direction === "inbound"
+        ? (options.messageMemos?.get(eventId(row)) ?? memos.get(row.id.index))
+        : undefined;
     const counterparty = row.counterpartyViewingPublicKey?.toBytes();
     return {
       id: eventId(row),

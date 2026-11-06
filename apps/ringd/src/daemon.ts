@@ -42,7 +42,7 @@ import {
   type WalletConfig,
   type WebhookConfig,
 } from "./config.ts";
-import { newEvents, type RingdEvent } from "./events.ts";
+import { messageMemos, newEvents, type RingdEvent } from "./events.ts";
 import type { RingdStore, StoredEvent } from "./store.ts";
 import { Dispatcher, routeFor, type DispatchResult } from "./webhooks.ts";
 
@@ -102,7 +102,9 @@ class WatchedWallet {
       store: store.snapshotStore(this.name),
       cipher: this.cipher,
     });
-    const events = newEvents(this.name, this.wallet, store.knownEventIds(this.name), { backfill: this.#firstSync });
+    const known = store.knownEventIds(this.name);
+    const memos = await messageMemos(client, this.wallet, this.keys, known);
+    const events = newEvents(this.name, this.wallet, known, { backfill: this.#firstSync, messageMemos: memos });
     this.#firstSync = false;
     return store.appendEvents(events, route);
   }
