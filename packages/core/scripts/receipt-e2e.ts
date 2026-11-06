@@ -7,8 +7,8 @@
  *
  *   pnpm --filter @ringstack/core receipt:e2e
  */
-import { ShieldedKeypair } from "@heliuslabs/zolana";
-import { SOL_MINT } from "@heliuslabs/zolana/transaction";
+import { ShieldedKeypair } from "@heliuslabs/spr";
+import { SOL_MINT } from "@heliuslabs/spr/transaction";
 
 import { networkFromEnv } from "../src/config.ts";
 import { decodeReceipt, encodeReceipt } from "../src/receipt.ts";

@@ -17,15 +17,15 @@
  * width (`MEMO_LENGTH`). Its view tag is the output's own, so it links nothing
  * an observer could not already link.
  */
-import type { ShieldedAddress, ShieldedKeypair, ViewingKey } from "@heliuslabs/zolana";
-import { randomSalt } from "@heliuslabs/zolana/keypair";
+import type { ShieldedAddress, ShieldedKeypair, ViewingKey } from "@heliuslabs/spr";
+import { randomSalt } from "@heliuslabs/spr/keypair";
 import {
   encodeConfidentialSlots,
   type AssetRegistry,
   type ConfidentialTransfer,
   type IndexedShieldedTransaction,
   type SppProofInputs,
-} from "@heliuslabs/zolana/transaction";
+} from "@heliuslabs/spr/transaction";
 
 /** Fixed memo width in bytes. */
 export const MEMO_LENGTH = 32;

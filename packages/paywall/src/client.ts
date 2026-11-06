@@ -4,7 +4,7 @@
  */
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import {
   parsePaymentRequest,
   payRequest,

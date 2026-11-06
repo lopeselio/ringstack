@@ -3,8 +3,8 @@
  * "Paying a request"). The caller shows the request and gets the payer's
  * confirmation before calling `payRequest`.
  */
-import { SOL_MINT, fetchAssetMetadata } from "@heliuslabs/zolana";
-import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
+import { SOL_MINT, fetchAssetMetadata } from "@heliuslabs/spr";
+import { isWalletRegistered } from "@heliuslabs/spr/wallet";
 
 import { encodeReceipt, type Cluster, type Receipt } from "./receipt.ts";
 import { fetchShieldedTransaction, issueReceipt } from "./receipt-open.ts";

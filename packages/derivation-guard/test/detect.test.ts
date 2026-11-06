@@ -5,7 +5,7 @@ import {
   TSPP_APPLICATION_DOMAIN as SDK_DOMAIN,
   ed25519DerivationMessage,
   isDerivationInput,
-} from "@heliuslabs/zolana/keypair";
+} from "@heliuslabs/spr/keypair";
 import { describe, expect, it } from "vitest";
 import {
   DERIVATION_PAYLOAD_PREFIX,

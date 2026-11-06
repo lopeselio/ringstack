@@ -1,4 +1,4 @@
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import { address } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 

@@ -1,4 +1,4 @@
-import { ed25519DerivationMessage } from "@heliuslabs/zolana/keypair";
+import { ed25519DerivationMessage } from "@heliuslabs/spr/keypair";
 import type { SolanaSignMessageFeature, SolanaSignMessageInput } from "@solana/wallet-standard-features";
 import type { Wallet, WalletAccount } from "@wallet-standard/base";
 import type { StandardEventsFeature, StandardEventsListeners } from "@wallet-standard/features";

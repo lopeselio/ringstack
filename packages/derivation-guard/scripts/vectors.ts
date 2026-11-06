@@ -2,7 +2,7 @@
 // whether to refuse each, and what the SDK's own isDerivationInput says.
 // The canonical message comes from the SDK, so the vectors track upstream.
 import { writeFileSync } from "node:fs";
-import { ed25519DerivationMessage, isDerivationInput } from "@heliuslabs/zolana/keypair";
+import { ed25519DerivationMessage, isDerivationInput } from "@heliuslabs/spr/keypair";
 import { inspectSignRequest, OFFCHAIN_MESSAGE_MAGIC, TSPP_APPLICATION_DOMAIN } from "../src/detect.ts";
 
 const enc = new TextEncoder();
@@ -104,8 +104,8 @@ writeFileSync(
   JSON.stringify(
     {
       description:
-        "Sign requests for the Helius Privacy key-derivation message. `refuse` is what a wallet should do for a third-party request; `sdkRefuses` is @heliuslabs/zolana isDerivationInput.",
-      sdk: "@heliuslabs/zolana@0.8.0-alpha",
+        "Sign requests for the Helius Privacy key-derivation message. `refuse` is what a wallet should do for a third-party request; `sdkRefuses` is @heliuslabs/spr isDerivationInput.",
+      sdk: "@heliuslabs/spr@0.9.0-alpha",
       signer: hex(SIGNER),
       vectors,
     },

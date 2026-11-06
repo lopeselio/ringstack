@@ -5,7 +5,7 @@
  *
  *   pnpm --filter @ringstack/core receipt:demo [verifier-base-url]
  */
-import { ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 
 import { clientConfigFromEnv, networkFromEnv } from "../src/config.ts";
 import { fund } from "../src/fund.ts";
@@ -18,7 +18,7 @@ import { RingSession } from "../src/session.ts";
 const verifierBase = process.argv[2] ?? "https://lopeselio.github.io/ringstack/verify/";
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 
 const customer = await RingSession.open(client, ShieldedKeypair.generate());
 const merchant = await RingSession.open(client, ShieldedKeypair.generate());

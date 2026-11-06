@@ -7,9 +7,9 @@
  * helius-labs/zolana#543). New memos travel as transaction messages and leave
  * outputs plain; memo-bearing UTXOs only come from payments made before that.
  */
-import { MERGE_INPUT_COUNT } from "@heliuslabs/zolana/interface";
-import { Utxo } from "@heliuslabs/zolana/transaction";
-import type { Address, Wallet } from "@heliuslabs/zolana";
+import { MERGE_INPUT_COUNT } from "@heliuslabs/spr/interface";
+import { Utxo } from "@heliuslabs/spr/transaction";
+import type { Address, Wallet } from "@heliuslabs/spr";
 
 export type WalletEntry = ReturnType<Wallet["utxos"]>[number];
 

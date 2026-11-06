@@ -14,7 +14,7 @@
     "smoke": "tsx --env-file-if-exists=../../.env scripts/smoke.ts"
   },
   "dependencies": {
-    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@heliuslabs/spr": "0.9.0-alpha",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@ringstack/core": "workspace:*",
     "@ringstack/paywall": "workspace:*",

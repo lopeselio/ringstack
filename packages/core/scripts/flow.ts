@@ -2,10 +2,10 @@
  * Shared flow for scripts: fund → deposit SOL → confidential transfer (localnet or devnet).
  * Mirrors helius-labs/zolana-examples deposit_transfer_withdraw.ts.
  */
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { LocalKeys, atSlot } from "@heliuslabs/zolana/client";
-import { DepositAsset, depositInstruction, transactInstruction } from "@heliuslabs/zolana/interface";
-import { AssetRegistry, ConfidentialTransfer, ProofInputUtxo, decryptToBalances } from "@heliuslabs/zolana/transaction";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
+import { LocalKeys, atSlot } from "@heliuslabs/spr/client";
+import { DepositAsset, depositInstruction, transactInstruction } from "@heliuslabs/spr/interface";
+import { AssetRegistry, ConfidentialTransfer, ProofInputUtxo, decryptToBalances } from "@heliuslabs/spr/transaction";
 
 import { clientConfigFromEnv } from "../src/config.ts";
 import { fund } from "../src/fund.ts";
@@ -23,7 +23,7 @@ export interface FlowOptions {
 
 export async function depositAndTransfer({ log = console.log, memo }: FlowOptions = {}) {
   await initializePoseidon();
-  const client = await createZolanaClient(clientConfigFromEnv());
+  const client = await createSprClient(clientConfigFromEnv());
 
   const sender = ShieldedKeypair.generate();
   const recipient = ShieldedKeypair.generate();

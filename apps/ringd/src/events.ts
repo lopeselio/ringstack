@@ -5,9 +5,9 @@
  * id, so the same row always yields the same event; together with the wallet
  * name it is the idempotency key for storage and webhook delivery.
  */
-import { ViewingKey, type Wallet } from "@heliuslabs/zolana";
-import { bytes32 } from "@heliuslabs/zolana/keypair";
-import type { PrivateTransaction } from "@heliuslabs/zolana/transaction";
+import { ViewingKey, type Wallet } from "@heliuslabs/spr";
+import { bytes32 } from "@heliuslabs/spr/keypair";
+import type { PrivateTransaction } from "@heliuslabs/spr/transaction";
 import { decodeMemo, receivedMemos } from "@ringstack/core/memo";
 import { fetchShieldedTransaction, type ShieldedTransactionReader } from "@ringstack/core/receipt-open";
 import type { WatchKeys } from "@ringstack/core";

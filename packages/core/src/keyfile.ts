@@ -9,8 +9,8 @@
  */
 import { chmod, readFile, writeFile } from "node:fs/promises";
 
-import { LocalShieldedKeys, NullifierKey, ShieldedAddress, ViewingKey, type ShieldedKeypair } from "@heliuslabs/zolana";
-import { bytes31, bytes32 } from "@heliuslabs/zolana/keypair";
+import { LocalShieldedKeys, NullifierKey, ShieldedAddress, ViewingKey, type ShieldedKeypair } from "@heliuslabs/spr";
+import { bytes31, bytes32 } from "@heliuslabs/spr/keypair";
 
 export const KEY_FILE_VERSION = 1;
 

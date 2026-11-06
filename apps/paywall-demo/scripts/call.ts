@@ -8,7 +8,7 @@
  * per day, and only the URL's own host (override with AGENT_MAX_PER_CALL,
  * AGENT_DAILY_BUDGET). Spending is recorded in <keypair>.ledger.json.
  */
-import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { RingSession, clientConfigFromEnv, loadShieldedKeypair, networkFromEnv, toBaseUnits } from "@ringstack/core";
 import { SpendLedger, SpendRefused, paidFetch } from "@ringstack/paywall";
 
@@ -20,7 +20,7 @@ if (!url || !keypair) {
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const session = await RingSession.open(client, await loadShieldedKeypair(keypair));
 
 try {

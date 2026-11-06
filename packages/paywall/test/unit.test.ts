@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { SOL_MINT, ShieldedKeypair, initializePoseidon } from "@heliuslabs/zolana";
+import { SOL_MINT, ShieldedKeypair, initializePoseidon } from "@heliuslabs/spr";
 import { parsePaymentRequest, type PaymentRequest } from "@ringstack/core";
 import { address } from "@solana/kit";
 import { beforeAll, describe, expect, it } from "vitest";

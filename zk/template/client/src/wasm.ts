@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import type { ProgramWalletUtxo } from "@heliuslabs/zolana/transaction";
+import type { ProgramWalletUtxo } from "@heliuslabs/spr/program";
 
 export interface TxContext {
   blindingSeed: Uint8Array;

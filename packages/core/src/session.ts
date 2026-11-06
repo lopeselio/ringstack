@@ -24,10 +24,10 @@ import {
   type ShieldedKeypair,
   type SyncReport,
   type TransferDestination,
-} from "@heliuslabs/zolana";
-import { TransactWithdrawal, transactInstruction } from "@heliuslabs/zolana/interface";
-import { ConfidentialTransfer, ProofInputUtxo, WithdrawalTarget } from "@heliuslabs/zolana/transaction";
-import { fetchUserRecord, resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
+} from "@heliuslabs/spr";
+import { TransactWithdrawal, transactInstruction } from "@heliuslabs/spr/interface";
+import { ConfidentialTransfer, ProofInputUtxo, WithdrawalTarget } from "@heliuslabs/spr/transaction";
+import { fetchUserRecord, resolveRegisteredAddress } from "@heliuslabs/spr/wallet";
 import type { Signature, Transaction, TransactionPartialSigner } from "@solana/kit";
 
 import { buildMerge } from "./merge.ts";
@@ -39,7 +39,7 @@ import {
   submitTransaction,
   type ConfirmedTransaction,
   type SendHooks,
-  type ZolanaClient,
+  type SprClient,
 } from "./send.ts";
 
 /** Most inputs a memo transfer will spend; past this, merge first. */
@@ -66,13 +66,13 @@ export interface AssetOption {
 }
 
 export class RingSession {
-  readonly client: ZolanaClient;
+  readonly client: SprClient;
   readonly keypair: ShieldedKeypair;
   readonly signer: TransactionPartialSigner;
   readonly wallet: Wallet;
   readonly keys: LocalKeys;
 
-  private constructor(client: ZolanaClient, keypair: ShieldedKeypair) {
+  private constructor(client: SprClient, keypair: ShieldedKeypair) {
     this.client = client;
     this.keypair = keypair;
     this.signer = keypair.toSolanaSigner();
@@ -81,7 +81,7 @@ export class RingSession {
   }
 
   /** Create a session and run the first wallet sync. */
-  static async open(client: ZolanaClient, keypair: ShieldedKeypair): Promise<RingSession> {
+  static async open(client: SprClient, keypair: ShieldedKeypair): Promise<RingSession> {
     const session = new RingSession(client, keypair);
     await session.sync();
     return session;

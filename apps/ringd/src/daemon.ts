@@ -13,17 +13,17 @@ import {
   NullifierKey,
   ViewingKey,
   Wallet,
-  createZolanaClient,
+  createSprClient,
   keyedWalletSnapshotCipher,
   loadPersistedWallet,
   syncPersistedWallet,
   walletSnapshotKey,
   type WalletStateCipher,
-  type ZolanaClientConfig,
-} from "@heliuslabs/zolana";
+  type SprClientConfig,
+} from "@heliuslabs/spr";
 
-import { bytes31, bytes32 } from "@heliuslabs/zolana/keypair";
-import { fetchUserRecord } from "@heliuslabs/zolana/wallet";
+import { bytes31, bytes32 } from "@heliuslabs/spr/keypair";
+import { fetchUserRecord } from "@heliuslabs/spr/wallet";
 import {
   buildMerge,
   loadShieldedKeypair,
@@ -46,7 +46,7 @@ import { messageMemos, newEvents, type RingdEvent } from "./events.ts";
 import type { RingdStore, StoredEvent } from "./store.ts";
 import { Dispatcher, routeFor, type DispatchResult } from "./webhooks.ts";
 
-type Client = Awaited<ReturnType<typeof createZolanaClient>>;
+type Client = Awaited<ReturnType<typeof createSprClient>>;
 
 export interface Logger {
   info(msg: string, fields?: Record<string, unknown>): void;
@@ -175,7 +175,7 @@ function sameAddress(wallet: Wallet, keys: WatchKeys): boolean {
 }
 
 export interface DaemonOptions {
-  readonly client: ZolanaClientConfig;
+  readonly client: SprClientConfig;
   readonly wallets: readonly WalletConfig[];
   readonly store: RingdStore;
   readonly pollIntervalMs: number;
@@ -213,7 +213,7 @@ export class Daemon {
   }
 
   async start(): Promise<void> {
-    this.#client = await createZolanaClient(this.#opts.client);
+    this.#client = await createSprClient(this.#opts.client);
     if (this.#opts.merge !== undefined) {
       this.#mergeFeePayer = (await loadShieldedKeypair(this.#opts.merge.feePayer)).toSolanaSigner();
       this.#log.info("merge fee payer", { address: this.#mergeFeePayer.address });

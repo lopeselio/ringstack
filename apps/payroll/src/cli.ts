@@ -18,8 +18,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import { SOL_MINT, createZolanaClient, fetchAssetMetadata, initializePoseidon } from "@heliuslabs/zolana";
-import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
+import { SOL_MINT, createSprClient, fetchAssetMetadata, initializePoseidon } from "@heliuslabs/spr";
+import { isWalletRegistered } from "@heliuslabs/spr/wallet";
 import { RingSession, clientConfigFromEnv, decodeMemo, loadShieldedKeypair, spendableUtxos } from "@ringstack/core";
 import type { Cluster } from "@ringstack/core/receipt";
 import { address, type Signature } from "@solana/kit";
@@ -46,7 +46,7 @@ const cluster = (process.env["ZOLANA_NETWORK"]?.trim() || "localnet") as Cluster
 
 async function openSession(keypairPath: string): Promise<RingSession> {
   await initializePoseidon();
-  const client = await createZolanaClient(clientConfigFromEnv());
+  const client = await createSprClient(clientConfigFromEnv());
   return RingSession.open(client, await loadShieldedKeypair(keypairPath));
 }
 
@@ -186,7 +186,7 @@ async function verifyAudit(args: string[]) {
   const { values } = parseArgs({ args, options: { dir: { type: "string" } } });
   if (!values.dir) throw new Error(USAGE);
   await initializePoseidon();
-  const client = await createZolanaClient(clientConfigFromEnv());
+  const client = await createSprClient(clientConfigFromEnv());
   const check = await verifyAuditBundle(values.dir, client);
   if (check.manifest.cluster !== cluster) throw new Error(`bundle is for ${check.manifest.cluster}; ZOLANA_NETWORK is ${cluster}`);
   console.log(
@@ -233,7 +233,7 @@ async function verifyProof(args: string[]) {
   const link = args[0];
   if (!link) throw new Error(USAGE);
   await initializePoseidon();
-  const client = await createZolanaClient(clientConfigFromEnv());
+  const client = await createSprClient(clientConfigFromEnv());
   const c = await checkProof(client, link);
   if (c.cluster !== cluster) throw new Error(`proof is for ${c.cluster}; ZOLANA_NETWORK is ${cluster}`);
   const memo = decodeMemo(c.memo);

@@ -7,15 +7,15 @@ import {
   SOL_MINT,
   ShieldedKeypair,
   Wallet,
-  createZolanaClient,
+  createSprClient,
   fetchAssetMetadata,
   fetchViewingKeyOwners,
   formatAmount,
   viewingKeyIndex,
   type Address,
   type ShieldedAddress,
-} from "@heliuslabs/zolana";
-import { backfillAssetRegistry, resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
+} from "@heliuslabs/spr";
+import { backfillAssetRegistry, resolveRegisteredAddress } from "@heliuslabs/spr/wallet";
 import { decodeReceipt, type Cluster, type Receipt } from "@ringstack/core/receipt";
 import {
   fetchShieldedTransaction,
@@ -91,7 +91,7 @@ export async function verifyReceipt(
     throw new VerifyError(`This isn't a valid receipt link: ${(e as Error).message}.`);
   }
   const endpoints = endpointsFor(receipt.cluster, options.params ?? new URLSearchParams());
-  const client = await createZolanaClient({ solanaRpcUrl: endpoints.rpcUrl, indexerUrl: endpoints.indexerUrl });
+  const client = await createSprClient({ solanaRpcUrl: endpoints.rpcUrl, indexerUrl: endpoints.indexerUrl });
 
   let tx;
   try {
@@ -214,7 +214,7 @@ export async function verifyProofLink(
     throw new VerifyError(`This isn't a valid payment proof: ${(e as Error).message}.`);
   }
   const endpoints = endpointsFor(proof.cluster, options.params ?? new URLSearchParams());
-  const client = await createZolanaClient({ solanaRpcUrl: endpoints.rpcUrl, indexerUrl: endpoints.indexerUrl });
+  const client = await createSprClient({ solanaRpcUrl: endpoints.rpcUrl, indexerUrl: endpoints.indexerUrl });
   let tx;
   try {
     tx = await fetchShieldedTransaction(client, proof.signature);

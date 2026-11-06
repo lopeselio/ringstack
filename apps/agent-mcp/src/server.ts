@@ -9,7 +9,7 @@
  * Payments are private transfers (amount and order id encrypted); the API
  * learns only its own payment. Spend limits are enforced here, before paying.
  */
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RingSession } from "@ringstack/core";
 import type { Cluster } from "@ringstack/core/receipt";

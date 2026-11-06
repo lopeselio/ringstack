@@ -6,9 +6,9 @@
  * `senderViewingKey.transactionViewingKey(tx.nullifiers[0])`, and each
  * confidential slot body is `recipientViewingPk(33) || ciphertext`.
  */
-import { ViewingKey, type ShieldedAddress } from "@heliuslabs/zolana";
-import { DEFAULT_TREE_ID } from "@heliuslabs/zolana/interface";
-import { X25519PublicKey, bytes32, type Bytes32 } from "@heliuslabs/zolana/keypair";
+import { ViewingKey, type ShieldedAddress } from "@heliuslabs/spr";
+import { DEFAULT_TREE_ID } from "@heliuslabs/spr/interface";
+import { X25519PublicKey, bytes32, type Bytes32 } from "@heliuslabs/spr/keypair";
 import {
   AssetRegistry,
   EncryptedScheme,
@@ -16,7 +16,7 @@ import {
   decodeConfidential,
   decodeOutputData,
   type IndexedShieldedTransaction,
-} from "@heliuslabs/zolana/transaction";
+} from "@heliuslabs/spr/transaction";
 import type { Address, Signature } from "@solana/kit";
 
 import type { Cluster, Receipt } from "./receipt.ts";

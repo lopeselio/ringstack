@@ -24,9 +24,9 @@ import {
   openReceipt,
   type ShieldedTransactionReader,
 } from "@ringstack/core/receipt-open";
-import { resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
+import { resolveRegisteredAddress } from "@heliuslabs/spr/wallet";
 import type { RingSession } from "@ringstack/core";
-import type { ShieldedAddress } from "@heliuslabs/zolana";
+import type { ShieldedAddress } from "@heliuslabs/spr";
 import { address, type Signature } from "@solana/kit";
 
 import { parseCsvRecords } from "./csv.ts";

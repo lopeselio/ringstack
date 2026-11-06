@@ -18,8 +18,8 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { isWalletRegistered } from "@heliuslabs/zolana/wallet";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
+import { isWalletRegistered } from "@heliuslabs/spr/wallet";
 import {
   PaymentProofError,
   RingSession,
@@ -47,7 +47,7 @@ function check(cond: boolean, msg: string): asserts cond {
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const cluster = networkFromEnv();
 const airdrop = (to: Address, amount: bigint) => fund(client, to, amount);
 

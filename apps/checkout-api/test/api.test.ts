@@ -1,4 +1,4 @@
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import { parsePaymentRequest } from "@ringstack/core/ringpay";
 import { deliveryId, webhookHeaders, type RingdEvent } from "@ringstack/ringd-client";
 import { address } from "@solana/kit";

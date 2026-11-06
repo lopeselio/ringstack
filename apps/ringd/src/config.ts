@@ -36,7 +36,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import type { ZolanaClientConfig } from "@heliuslabs/zolana";
+import type { SprClientConfig } from "@heliuslabs/spr";
 import { clientConfig, type Network } from "@ringstack/core";
 import type { RingdEventType } from "@ringstack/ringd-client";
 import { parse } from "smol-toml";
@@ -85,7 +85,7 @@ export interface RingdConfig {
   readonly network: Network;
   readonly database: string;
   readonly pollIntervalMs: number;
-  readonly client: ZolanaClientConfig;
+  readonly client: SprClientConfig;
   readonly wallets: readonly WalletConfig[];
   readonly webhooks: readonly WebhookConfig[];
   readonly delivery: DeliveryConfig;

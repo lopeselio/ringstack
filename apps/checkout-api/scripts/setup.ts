@@ -11,7 +11,7 @@ import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { RingSession, clientConfigFromEnv, exportKeyFile, fund, loadShieldedKeypair, networkFromEnv } from "@ringstack/core";
 
 const root = resolve(import.meta.dirname, "..");
@@ -34,7 +34,7 @@ function writeSolanaKeypair(path: string) {
 
 await initializePoseidon();
 const network = networkFromEnv();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 
 const merchantKeyPath = join(demo, "merchant.json");
 const customerKeyPath = join(demo, "customer.json");

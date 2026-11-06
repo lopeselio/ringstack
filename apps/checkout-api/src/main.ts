@@ -1,4 +1,4 @@
-import { ShieldedKeypair, createZolanaClient } from "@heliuslabs/zolana";
+import { ShieldedKeypair, createSprClient } from "@heliuslabs/spr";
 import { RingSession, clientConfigFromEnv, loadShieldedKeypair, payRequest } from "@ringstack/core";
 
 import { loadApiConfig } from "./config.ts";
@@ -11,7 +11,7 @@ const db = new CheckoutDb(config.database);
 
 /** Demo customer wallet (test networks only): one session, payments serialized. */
 async function demoPayer(path: string): Promise<DemoPay> {
-  const client = await createZolanaClient(clientConfigFromEnv({ ...process.env, ZOLANA_NETWORK: config.cluster }));
+  const client = await createSprClient(clientConfigFromEnv({ ...process.env, ZOLANA_NETWORK: config.cluster }));
   const keypair: ShieldedKeypair = await loadShieldedKeypair(path);
   const session = await RingSession.open(client, keypair);
   let queue: Promise<unknown> = Promise.resolve();

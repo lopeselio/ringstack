@@ -1,5 +1,5 @@
-import type { ZolanaClientConfig } from "@heliuslabs/zolana";
-import { SignedTeePolicy } from "@heliuslabs/zolana/client";
+import type { SprClientConfig } from "@heliuslabs/spr";
+import { SignedTeePolicy } from "@heliuslabs/spr/client";
 
 export type Network = "localnet" | "devnet";
 
@@ -30,7 +30,7 @@ export interface ConfigInput {
 }
 
 /** Build a client config for a network preset with optional per-service overrides. */
-export function clientConfig({ network, apiKey, overrides = {} }: ConfigInput): ZolanaClientConfig {
+export function clientConfig({ network, apiKey, overrides = {} }: ConfigInput): SprClientConfig {
   const set = stripUndefined(overrides);
 
   if (network === "localnet") {
@@ -69,7 +69,7 @@ export function networkFromEnv(env: NodeJS.ProcessEnv = process.env): Network {
 }
 
 /** Read the config from ZOLANA_* environment variables (see .env.example). */
-export function clientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ZolanaClientConfig {
+export function clientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): SprClientConfig {
   const network = networkFromEnv(env);
   return clientConfig({
     network,

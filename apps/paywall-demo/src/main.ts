@@ -11,7 +11,7 @@
  * The server holds only the vendor's viewing and nullifier keys: it can see
  * payments to the vendor but cannot move the vendor's funds.
  */
-import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { clientConfigFromEnv, networkFromEnv, parseKeyFile, readKeyFile } from "@ringstack/core";
 import { address } from "@solana/kit";
 
@@ -24,7 +24,7 @@ if ((!keyFile && !keyJson) || !recipient) throw new Error("set VENDOR_ADDRESS an
 
 await initializePoseidon();
 const keys = keyJson ? parseKeyFile(keyJson) : await readKeyFile(keyFile!);
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const app = createDemoApp({
   paywall: {
     client,

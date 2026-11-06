@@ -7,9 +7,9 @@
  *
  *   pnpm --filter @ringstack/core memo:e2e
  */
-import { SOL_MINT } from "@heliuslabs/zolana";
-import { atSlot } from "@heliuslabs/zolana/client";
-import { decryptToBalances } from "@heliuslabs/zolana/transaction";
+import { SOL_MINT } from "@heliuslabs/spr";
+import { atSlot } from "@heliuslabs/spr/client";
+import { decryptToBalances } from "@heliuslabs/spr/transaction";
 
 import { decodeMemo, encodeMemo, receivedMemos } from "../src/memo.ts";
 import { networkFromEnv } from "../src/config.ts";

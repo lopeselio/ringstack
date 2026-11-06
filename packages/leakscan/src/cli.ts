@@ -12,8 +12,8 @@
  */
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { SHIELDED_POOL_PROGRAM_ID } from "@heliuslabs/zolana";
-import { getSolInterfaceAddress } from "@heliuslabs/zolana/addresses";
+import { SHIELDED_POOL_PROGRAM_ID } from "@heliuslabs/spr";
+import { getSolInterfaceAddress } from "@heliuslabs/spr/addresses";
 import { clientConfigFromEnv, networkFromEnv, toBaseUnits } from "@ringstack/core";
 
 import { adviseWithdrawal } from "./advisor.ts";

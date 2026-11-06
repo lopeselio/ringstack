@@ -6,7 +6,7 @@
  */
 import { DatabaseSync } from "node:sqlite";
 
-import type { WalletStateStore } from "@heliuslabs/zolana";
+import type { WalletStateStore } from "@heliuslabs/spr";
 
 import type { RingdEvent } from "./events.ts";
 

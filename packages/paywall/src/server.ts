@@ -9,8 +9,8 @@
  */
 import { randomBytes } from "node:crypto";
 
-import { SOL_MINT, ViewingKey, type ShieldedAddress } from "@heliuslabs/zolana";
-import { bytes32 } from "@heliuslabs/zolana/keypair";
+import { SOL_MINT, ViewingKey, type ShieldedAddress } from "@heliuslabs/spr";
+import { bytes32 } from "@heliuslabs/spr/keypair";
 import {
   PaymentProofError,
   encodePaymentRequest,

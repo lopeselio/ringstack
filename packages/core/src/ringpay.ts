@@ -2,7 +2,7 @@
  * `ringpay:` payment requests (spec/ringpay-uri.md). Browser-safe: no Node
  * imports, no network.
  */
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import { isAddress, type Address } from "@solana/kit";
 
 import { MEMO_LENGTH, decodeMemo, encodeMemo } from "./memo.ts";

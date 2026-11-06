@@ -10,7 +10,7 @@
  */
 import { parseArgs } from "node:util";
 
-import { initializePoseidon } from "@heliuslabs/zolana";
+import { initializePoseidon } from "@heliuslabs/spr";
 import { loadShieldedKeypair, writeKeyFile } from "@ringstack/core";
 
 import { loadConfig } from "./config.ts";

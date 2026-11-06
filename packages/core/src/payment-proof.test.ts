@@ -1,5 +1,5 @@
-import { ShieldedKeypair, ViewingKey, initializePoseidon } from "@heliuslabs/zolana";
-import { randomSalt } from "@heliuslabs/zolana/keypair";
+import { ShieldedKeypair, ViewingKey, initializePoseidon } from "@heliuslabs/spr";
+import { randomSalt } from "@heliuslabs/spr/keypair";
 import { getBase58Decoder, type Signature } from "@solana/kit";
 import { beforeAll, describe, expect, it } from "vitest";
 

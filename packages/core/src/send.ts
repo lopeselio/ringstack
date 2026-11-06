@@ -16,9 +16,9 @@ import {
   type TransactionPartialSigner,
   type TransactionSigner,
 } from "@solana/kit";
-import type { createZolanaClient } from "@heliuslabs/zolana";
+import type { createSprClient } from "@heliuslabs/spr";
 
-export type ZolanaClient = Awaited<ReturnType<typeof createZolanaClient>>;
+export type SprClient = Awaited<ReturnType<typeof createSprClient>>;
 
 export interface ConfirmedTransaction {
   readonly signature: Signature;
@@ -50,7 +50,7 @@ export interface SendOptions {
  * Adapted from helius-labs/zolana-examples (Apache-2.0).
  */
 export function sendAndConfirmFactory(
-  client: ZolanaClient,
+  client: SprClient,
   feePayer: TransactionSigner,
   { computeUnitLimit = 450_000 }: SendOptions = {},
 ): (instructions: readonly Instruction[], hooks?: SendHooks) => Promise<ConfirmedTransaction> {
@@ -85,7 +85,7 @@ export function sendAndConfirmFactory(
  * (`build*Transaction`). Every required signer must be in `signers`.
  */
 export async function submitTransaction(
-  client: ZolanaClient,
+  client: SprClient,
   signers: readonly TransactionPartialSigner[],
   transaction: Transaction,
 ): Promise<ConfirmedTransaction> {

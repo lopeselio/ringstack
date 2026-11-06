@@ -2,8 +2,8 @@
  * The payee's side: list incoming payments, prove one, check a proof.
  * See spec/payment-proof.md.
  */
-import { SOL_MINT } from "@heliuslabs/zolana";
-import { resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
+import { SOL_MINT } from "@heliuslabs/spr";
+import { resolveRegisteredAddress } from "@heliuslabs/spr/wallet";
 import {
   decodePaymentProof,
   encodePaymentProof,
@@ -12,7 +12,7 @@ import {
   verifyPaymentProof,
   type RingSession,
   type VerifiedPayment,
-  type ZolanaClient,
+  type SprClient,
 } from "@ringstack/core";
 import type { Cluster } from "@ringstack/core/receipt";
 import type { Address, Signature } from "@solana/kit";
@@ -74,7 +74,7 @@ export interface CheckedProof extends VerifiedPayment {
 }
 
 /** Everything a landlord, bank or accountant runs: no keys, just the link and the network. */
-export async function checkProof(client: ZolanaClient, link: string): Promise<CheckedProof> {
+export async function checkProof(client: SprClient, link: string): Promise<CheckedProof> {
   const proof = decodePaymentProof(link);
   const tx = await fetchShieldedTransaction(client, proof.signature);
   const verified = verifyPaymentProof(proof, tx);

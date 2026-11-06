@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { SOL_MINT } from "@heliuslabs/zolana";
+import { SOL_MINT } from "@heliuslabs/spr";
 import { Inject, Injectable } from "@nestjs/common";
 import { encodePaymentRequest, orderFromMemo, toBaseUnits } from "@ringstack/core/ringpay";
 import type { RingdEvent } from "@ringstack/ringd-client";

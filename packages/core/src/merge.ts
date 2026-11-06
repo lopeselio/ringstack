@@ -10,14 +10,14 @@
  * memo is outside the commitment, so each input is rebuilt without its memo
  * (same hash) before going into the lower-level `Merge`.
  */
-import { SOL_MINT, type NullifierKey, type ShieldedAddress, type ShieldedKeypair } from "@heliuslabs/zolana";
-import { getUserRecordAddress } from "@heliuslabs/zolana/addresses";
-import type { ProofAuthority } from "@heliuslabs/zolana/client";
-import { Merge, ProofInputUtxo } from "@heliuslabs/zolana/transaction";
-import type { Wallet } from "@heliuslabs/zolana";
+import { SOL_MINT, type NullifierKey, type ShieldedAddress, type ShieldedKeypair } from "@heliuslabs/spr";
+import { getUserRecordAddress } from "@heliuslabs/spr/addresses";
+import type { ProofAuthority } from "@heliuslabs/spr/client";
+import { Merge, ProofInputUtxo } from "@heliuslabs/spr/transaction";
+import type { Wallet } from "@heliuslabs/spr";
 import { getAddressDecoder, type Address, type Transaction } from "@solana/kit";
 
-import type { ZolanaClient } from "./send.ts";
+import type { SprClient } from "./send.ts";
 import { mergeEntries, withoutMemo } from "./utxos.ts";
 
 /** What a merge needs from the owner: address and nullifier key. The key stays the caller's. */
@@ -27,7 +27,7 @@ export interface MergeAuthority {
 }
 
 export interface BuildMergeInput {
-  readonly client: ZolanaClient;
+  readonly client: SprClient;
   readonly wallet: Wallet;
   readonly authority: MergeAuthority;
   /** Proves the merge (e.g. `LocalKeys.fromKeys` over the viewing + nullifier keys). */

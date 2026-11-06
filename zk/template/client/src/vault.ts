@@ -7,28 +7,27 @@
  */
 import { readFileSync } from "node:fs";
 
-import { SOL_MINT } from "@heliuslabs/zolana";
-import { atSlot, type ZolanaClient } from "@heliuslabs/zolana/client";
+import { SOL_MINT } from "@heliuslabs/spr";
+import { atSlot, type PaginationToken, type SprClient } from "@heliuslabs/spr/client";
+import { encodeTransactInstructionData, type TransactInstructionData } from "@heliuslabs/spr/interface";
+import { bytes32, bytes64, type ShieldedKeypair, type ViewingKey, type X25519PublicKey } from "@heliuslabs/spr/keypair";
 import {
-  encodeTransactInstructionData,
+  ProgramOwner,
+  toProgramWalletUtxo,
   transactCpiAccounts,
-  type TransactInstructionData,
-} from "@heliuslabs/zolana/interface";
-import { bytes32, bytes64, type ShieldedKeypair, type ViewingKey, type X25519PublicKey } from "@heliuslabs/zolana/keypair";
+  type ProgramWalletUtxo,
+} from "@heliuslabs/spr/program";
 import {
   EncryptedScheme,
   LocalShieldedKeys,
-  ProgramOwner,
   TransactionError,
   Wallet,
   decodeConfidential,
   decodeOutputData,
   decryptTransactions,
-  toProgramWalletUtxo,
   type AssetRegistry,
   type IndexedShieldedTransaction,
-  type ProgramWalletUtxo,
-} from "@heliuslabs/zolana/transaction";
+} from "@heliuslabs/spr/transaction";
 import {
   AccountRole,
   address,
@@ -87,7 +86,7 @@ function u64le(value: bigint): Uint8Array {
 
 /** Sends version-1 transactions with the compute budget a proof-carrying transact needs. */
 export function sendAndConfirmFactory(
-  client: ZolanaClient,
+  client: SprClient,
   feePayer: TransactionSigner,
 ): (instructions: readonly Instruction[]) => Promise<bigint> {
   const sendTransaction = sendTransactionWithoutConfirmingFactory({ rpc: client.solanaRpc });
@@ -117,23 +116,33 @@ export function vaultAuthority(creator: Address, programId: Address = TEMPLATE_P
   return ProgramOwner.find([VAULT_AUTHORITY_SEED, addressEncoder.encode(creator)], programId);
 }
 
-/** Transactions tagged for the creator or their vault authority, as of `slot`. */
+/**
+ * Every transaction tagged for the creator or their vault authority, as of
+ * `slot`: all pages, so a busy creator's older vaults are not missed.
+ */
 export async function creatorTransactions(
-  client: ZolanaClient,
+  client: SprClient,
   creator: ShieldedKeypair,
   authority: ProgramOwner,
   slot: bigint,
 ): Promise<readonly IndexedShieldedTransaction[]> {
-  const response = await client.getShieldedTransactionsByTags(
-    { tags: [creator.shieldedAddress().confidentialViewTag(), authority.ownerTag()], limit: 50 },
-    atSlot(slot),
-  );
-  return response.transactions;
+  const tags = [creator.shieldedAddress().confidentialViewTag(), authority.ownerTag()];
+  const transactions: IndexedShieldedTransaction[] = [];
+  let paginationToken: PaginationToken | null = null;
+  do {
+    const page = await client.getShieldedTransactionsByTags(
+      { tags, limit: 100, ...(paginationToken === null ? {} : { paginationToken }) },
+      atSlot(slot),
+    );
+    for (const tx of page.data) transactions.push(...tx.events);
+    paginationToken = page.paginationToken;
+  } while (paginationToken !== null);
+  return transactions;
 }
 
 /** The creator's unspent SOL, as inputs a program transaction can spend. */
 export async function spendableSol(
-  client: ZolanaClient,
+  client: SprClient,
   creator: ShieldedKeypair,
   transactions: readonly IndexedShieldedTransaction[],
   assets: AssetRegistry,
@@ -240,7 +249,7 @@ export function prove(wasm: TemplateWasm, circuit: "lock" | "release", proofInpu
 }
 
 interface ProgramTransactInput {
-  readonly client: ZolanaClient;
+  readonly client: SprClient;
   readonly creator: TransactionSigner;
   readonly authority: ProgramOwner;
   readonly proof: CompressedGroth16Proof;

@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@heliuslabs/zolana": "0.8.0-alpha",
+    "@heliuslabs/spr": "0.9.0-alpha",
     "@wallet-standard/app": "1.1.1",
     "@wallet-standard/features": "1.1.1",
     "@wallet-standard/wallet": "1.1.1"

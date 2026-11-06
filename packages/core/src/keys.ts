@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 
-import { ShieldedKeypair, SigningKey, type Bytes32 } from "@heliuslabs/zolana";
+import { ShieldedKeypair, SigningKey, type Bytes32 } from "@heliuslabs/spr";
 
 export function expandHome(path: string): string {
   if (path === "~") return homedir();

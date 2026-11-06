@@ -11,7 +11,7 @@
  */
 import type { AddressInfo } from "node:net";
 
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import {
   RingSession,
   clientConfigFromEnv,
@@ -34,7 +34,7 @@ const PRICE_BASE = 500_000n;
 const cluster = networkFromEnv();
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 
 // Vendor: registered; the API server gets only its read-only key file.
 const vendor = await RingSession.open(client, ShieldedKeypair.generate());

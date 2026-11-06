@@ -27,9 +27,9 @@
 import { ctr } from "@noble/ciphers/aes.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { ShieldedAddress, type ViewingKey } from "@heliuslabs/zolana";
-import { DEFAULT_TREE_ID } from "@heliuslabs/zolana/interface";
-import type { X25519PublicKey } from "@heliuslabs/zolana/keypair";
+import { ShieldedAddress, type ViewingKey } from "@heliuslabs/spr";
+import { DEFAULT_TREE_ID } from "@heliuslabs/spr/interface";
+import type { X25519PublicKey } from "@heliuslabs/spr/keypair";
 import {
   AssetRegistry,
   EncryptedScheme,
@@ -38,7 +38,7 @@ import {
   decodeOutputData,
   slotOrdinal,
   type IndexedShieldedTransaction,
-} from "@heliuslabs/zolana/transaction";
+} from "@heliuslabs/spr/transaction";
 import { getAddressDecoder, getBase58Decoder, getBase58Encoder, type Address, type Signature } from "@solana/kit";
 
 import { fromBase64Url, toBase64Url } from "./base64url.ts";

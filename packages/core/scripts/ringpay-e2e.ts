@@ -6,7 +6,7 @@
  *
  *   pnpm --filter @ringstack/core ringpay:e2e
  */
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 
 import { clientConfigFromEnv, networkFromEnv } from "../src/config.ts";
 import { fund } from "../src/fund.ts";
@@ -33,7 +33,7 @@ async function expectCode(code: RingPayError["code"], fn: () => Promise<unknown>
 const cluster = networkFromEnv();
 const otherCluster = cluster === "localnet" ? "devnet" : "localnet";
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const customer = await RingSession.open(client, ShieldedKeypair.generate());
 const merchant = await RingSession.open(client, ShieldedKeypair.generate());
 const stranger = ShieldedKeypair.generate().toSolanaSigner().address; // never registers

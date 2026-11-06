@@ -24,7 +24,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { RingSession, clientConfigFromEnv, encodeMemo, exportKeyFile, fund, loadShieldedKeypair } from "@ringstack/core";
 import { verifyWebhook, type RingdEvent } from "@ringstack/ringd-client";
 
@@ -87,7 +87,7 @@ const quiet: Logger = { info: () => {}, error: (m) => errors.push(m) };
 const clientConfig = clientConfigFromEnv();
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfig);
+const client = await createSprClient(clientConfig);
 const customer = await RingSession.open(client, ShieldedKeypair.generate());
 const merchant = await RingSession.open(client, ShieldedKeypair.generate());
 for (const s of [customer, merchant]) {

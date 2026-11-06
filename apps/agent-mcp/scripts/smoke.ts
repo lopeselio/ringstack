@@ -11,7 +11,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
@@ -31,7 +31,7 @@ function check(cond: boolean, msg: string): asserts cond {
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const dir = mkdtempSync(join(tmpdir(), "agent-mcp-"));
 
 // Vendor + demo API.

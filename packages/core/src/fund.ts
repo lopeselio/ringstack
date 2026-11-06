@@ -7,7 +7,7 @@ import { getTransferSolInstruction } from "@solana-program/system";
 import { lamports, type Address, type TransactionSigner } from "@solana/kit";
 
 import { loadShieldedKeypair } from "./keys.ts";
-import { sendAndConfirmFactory, type ZolanaClient } from "./send.ts";
+import { sendAndConfirmFactory, type SprClient } from "./send.ts";
 
 let funder: Promise<TransactionSigner | undefined> | undefined;
 
@@ -19,7 +19,7 @@ function funderFromEnv(env: NodeJS.ProcessEnv): Promise<TransactionSigner | unde
 
 /** Send `amount` lamports to `to`: from ZOLANA_FUNDER_KEYPAIR when set, else by airdrop. */
 export async function fund(
-  client: ZolanaClient,
+  client: SprClient,
   to: Address,
   amount: bigint,
   env: NodeJS.ProcessEnv = process.env,

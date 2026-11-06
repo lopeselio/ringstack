@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { ShieldedKeypair, SigningKey, initializePoseidon } from "@heliuslabs/zolana";
+import { ShieldedKeypair, SigningKey, initializePoseidon } from "@heliuslabs/spr";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { parseConfig } from "../src/config.ts";

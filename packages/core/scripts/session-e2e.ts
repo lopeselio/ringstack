@@ -6,7 +6,7 @@
  *
  *   pnpm --filter @ringstack/core session:e2e
  */
-import { SOL_MINT, ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { SOL_MINT, ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { generateKeyPairSigner } from "@solana/kit";
 
 import { clientConfigFromEnv } from "../src/config.ts";
@@ -19,7 +19,7 @@ function check(cond: boolean, msg: string): asserts cond {
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 
 const alice = await RingSession.open(client, ShieldedKeypair.generate());
 const bob = await RingSession.open(client, ShieldedKeypair.generate());

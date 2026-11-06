@@ -6,7 +6,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
+import { createSprClient, initializePoseidon } from "@heliuslabs/spr";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { RingSession, clientConfigFromEnv, loadShieldedKeypair, networkFromEnv } from "@ringstack/core";
 import { SpendLedger } from "@ringstack/paywall";
@@ -21,7 +21,7 @@ const config = loadAgentConfig();
 mkdirSync(dirname(config.ledgerPath), { recursive: true, mode: 0o700 });
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const session = await RingSession.open(client, await loadShieldedKeypair(config.keypair));
 
 const server = createAgentServer({

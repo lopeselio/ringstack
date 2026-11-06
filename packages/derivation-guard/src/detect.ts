@@ -7,7 +7,7 @@
  * can read every private payment the user has made or received. This file has
  * no dependencies so a wallet can copy it into its signing path as is.
  *
- * It refuses everything `isDerivationInput` from `@heliuslabs/zolana/keypair`
+ * It refuses everything `isDerivationInput` from `@heliuslabs/spr/keypair`
  * refuses (a property test checks this), plus envelopes upstream lets through
  * because they could not produce a seed today but have no honest use either:
  * an off-chain message carrying the TSPP application domain, a payload whose

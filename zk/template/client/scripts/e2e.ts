@@ -9,10 +9,11 @@
  *   ZOLANA_NETWORK=devnet API_KEY=... ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json
  *   pnpm --filter @ringstack/zk-template-client e2e
  */
-import { ShieldedKeypair, createZolanaClient, initializePoseidon } from "@heliuslabs/zolana";
-import { DepositAsset, depositInstruction } from "@heliuslabs/zolana/interface";
-import { ShieldedPda, randomBlinding, solanaOwnerIdentity } from "@heliuslabs/zolana/keypair";
-import { AssetRegistry, ProgramOwner, bindProgramTransaction, type ProgramWalletUtxo } from "@heliuslabs/zolana/transaction";
+import { ShieldedKeypair, createSprClient, initializePoseidon } from "@heliuslabs/spr";
+import { DepositAsset, depositInstruction } from "@heliuslabs/spr/interface";
+import { randomBlinding, solanaOwnerIdentity } from "@heliuslabs/spr/keypair";
+import { ProgramOwner, ShieldedPda, bindProgramTransaction, type ProgramWalletUtxo } from "@heliuslabs/spr/program";
+import { AssetRegistry } from "@heliuslabs/spr/transaction";
 import { clientConfigFromEnv, fund } from "@ringstack/core";
 import { address, getAddressEncoder } from "@solana/kit";
 
@@ -55,7 +56,7 @@ function customError(error: unknown, seen = new Set<unknown>()): number | undefi
 }
 
 await initializePoseidon();
-const client = await createZolanaClient(clientConfigFromEnv());
+const client = await createSprClient(clientConfigFromEnv());
 const programId = process.env["TEMPLATE_PROGRAM_ID"] ? address(process.env["TEMPLATE_PROGRAM_ID"]) : TEMPLATE_PROGRAM_ID;
 const program = await client.solanaRpc.getAccountInfo(programId, { encoding: "base64" }).send();
 check(program.value?.executable === true, `no program deployed at ${programId} on this network`);
