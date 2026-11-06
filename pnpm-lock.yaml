@@ -240,17 +240,21 @@ importers:
         version: 8.6.0(typescript@5.9.3)
 
   packages/derivation-guard:
+    dependencies:
+      '@solana/wallet-standard-features':
+        specifier: 1.5.0
+        version: 1.5.0
+      '@wallet-standard/base':
+        specifier: 1.1.1
+        version: 1.1.1
     devDependencies:
       '@heliuslabs/zolana':
         specifier: 0.8.0-alpha
         version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
-      '@solana/wallet-standard-features':
-        specifier: 1.5.0
-        version: 1.5.0
       '@wallet-standard/app':
         specifier: 1.1.1
         version: 1.1.1
-      '@wallet-standard/base':
+      '@wallet-standard/features':
         specifier: 1.1.1
         version: 1.1.1
       '@wallet-standard/wallet':

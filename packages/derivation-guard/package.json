@@ -15,9 +15,12 @@
   },
   "devDependencies": {
     "@heliuslabs/zolana": "0.8.0-alpha",
-    "@solana/wallet-standard-features": "1.5.0",
     "@wallet-standard/app": "1.1.1",
-    "@wallet-standard/base": "1.1.1",
+    "@wallet-standard/features": "1.1.1",
     "@wallet-standard/wallet": "1.1.1"
+  },
+  "dependencies": {
+    "@solana/wallet-standard-features": "1.5.0",
+    "@wallet-standard/base": "1.1.1"
   }
 }
