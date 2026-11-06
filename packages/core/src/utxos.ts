@@ -4,7 +4,8 @@
  * "Spendable" here means spendable through the lower-level builders: no
  * committed data, no ring binding, and data that is at most a memo. The SDK's
  * own selection is stricter (`isPlainUtxo` rejects memos; see
- * helius-labs/zolana#543).
+ * helius-labs/zolana#543). New memos travel as transaction messages and leave
+ * outputs plain; memo-bearing UTXOs only come from payments made before that.
  */
 import { MERGE_INPUT_COUNT } from "@heliuslabs/zolana/interface";
 import { Utxo } from "@heliuslabs/zolana/transaction";

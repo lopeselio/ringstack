@@ -28,10 +28,11 @@ import {
 import { TransactWithdrawal, transactInstruction } from "@heliuslabs/zolana/interface";
 import { ConfidentialTransfer, ProofInputUtxo, WithdrawalTarget } from "@heliuslabs/zolana/transaction";
 import { fetchUserRecord, resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
-import type { Transaction, TransactionPartialSigner } from "@solana/kit";
+import type { Signature, Transaction, TransactionPartialSigner } from "@solana/kit";
 
 import { buildMerge } from "./merge.ts";
-import { signTransferWithMemos, type OutputMemo } from "./memo.ts";
+import { decodeMemo, receivedMemos, signTransferWithMemos, type OutputMemo } from "./memo.ts";
+import { fetchShieldedTransaction } from "./receipt-open.ts";
 import { hasMemoUtxos, isSpendable, type WalletEntry } from "./utxos.ts";
 import {
   sendAndConfirmFactory,
@@ -104,6 +105,28 @@ export class RingSession {
     });
   }
 
+  /**
+   * Memos this identity received in transaction `signature`, by the leaf
+   * index of the output they describe. Reads memo messages and, for payments
+   * sent before memos moved to messages, memos inside synced outputs.
+   */
+  async receivedMemos(signature: Signature): Promise<Map<bigint, string>> {
+    const tx = await fetchShieldedTransaction(this.client, signature);
+    const viewingKey = this.keypair.viewingKey();
+    try {
+      const memos = receivedMemos(tx, this.address, viewingKey);
+      for (const slot of tx.outputSlots) {
+        const leaf = slot.outputContext.leafIndex;
+        const entry = this.wallet.utxos().find((e) => e.outputContext.leafIndex === leaf);
+        const legacy = decodeMemo(entry?.utxo.data.memo());
+        if (legacy !== undefined && !memos.has(leaf)) memos.set(leaf, legacy);
+      }
+      return memos;
+    } finally {
+      viewingKey.destroy();
+    }
+  }
+
   /** Spendable default-ring balance as of the last sync. */
   balance(asset: Address = SOL_MINT): bigint {
     return this.wallet.balance(asset).amount;
@@ -149,9 +172,9 @@ export class RingSession {
 
   /**
    * Private transfer. A plain `Address` is resolved through the registry.
-   * Goes through the lower-level builder when `memo` is set (so the
-   * recipient's output carries it) or when the wallet holds memo-bearing
-   * UTXOs of `asset`, which the SDK's default selection skips (see memo.ts).
+   * Goes through the lower-level builder when `memo` is set (the SDK's
+   * builders take no messages, see memo.ts) or when the wallet still holds
+   * legacy memo-bearing UTXOs of `asset`, which the SDK's default selection skips.
    */
   async transfer(
     recipient: TransferDestination,
@@ -176,7 +199,7 @@ export class RingSession {
 
   /**
    * Unshield to a public Solana address. Falls back to the lower-level builder
-   * when the wallet holds memo-bearing UTXOs of `asset` (SOL only for now).
+   * when the wallet holds legacy memo-bearing UTXOs of `asset` (SOL only for now).
    */
   async withdraw(recipient: Address, amount: bigint, { asset }: AssetOption = {}): Promise<ConfirmedTransaction> {
     const mint = asset ?? SOL_MINT;
@@ -203,7 +226,7 @@ export class RingSession {
   /**
    * Merge this identity's UTXOs of one asset. Requires `setMerge(true)`.
    *
-   * The SDK refuses merge inputs whose data is non-empty, memo included. A memo
+   * The SDK refuses merge inputs whose data is non-empty, legacy memos included. A memo
    * is outside the commitment, so a memo UTXO rebuilt without it hashes to the
    * same leaf; those rebuilt inputs go through the lower-level `Merge`. The
    * merged output carries no memo.
