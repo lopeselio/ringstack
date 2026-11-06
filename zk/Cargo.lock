@@ -84,6 +84,7 @@ dependencies = [
  "fnv",
  "merlin",
  "num-bigint",
+ "rayon",
  "sha2 0.10.9",
 ]
 
@@ -137,6 +138,7 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "rayon",
  "zeroize",
 ]
 
@@ -174,6 +176,7 @@ dependencies = [
  "educe",
  "num-bigint",
  "num-traits",
+ "rayon",
  "zeroize",
 ]
 
@@ -237,6 +240,7 @@ dependencies = [
  "ark-serialize 0.6.0",
  "ark-snark",
  "ark-std 0.6.0",
+ "rayon",
 ]
 
 [[package]]
@@ -267,6 +271,7 @@ dependencies = [
  "educe",
  "fnv",
  "hashbrown 0.17.1",
+ "rayon",
 ]
 
 [[package]]
@@ -299,6 +304,7 @@ dependencies = [
  "ark-std 0.6.0",
  "foldhash",
  "indexmap 2.14.2",
+ "rayon",
  "tracing",
  "tracing-subscriber",
 ]
@@ -326,6 +332,7 @@ dependencies = [
  "ark-std 0.6.0",
  "digest 0.10.7",
  "num-bigint",
+ "rayon",
  "serde_with",
 ]
 
@@ -381,6 +388,7 @@ checksum = "367c9c827ed431bff6868b7aa926e05b16eb46603cc8b6e768e4a5553fa1d155"
 dependencies = [
  "num-traits",
  "rand 0.8.8",
+ "rayon",
 ]
 
 [[package]]
@@ -575,6 +583,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "console_error_panic_hook"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -609,6 +627,31 @@ checksum = "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "622f3fc73690be383c7214310406f28a90e6edeadc3cea882f9d71e495b9711a"
+dependencies = [
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
 name = "crypto-common"
@@ -973,9 +1016,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 6.0.0",
  "rand_core 0.10.1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -987,7 +1032,10 @@ dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
  "ark-serialize 0.6.0",
- "pinocchio",
+ "num-bigint",
+ "pinocchio 0.10.2",
+ "serde",
+ "serde_json",
  "sha2 0.10.9",
  "solana-bn254",
  "thiserror 2.0.21",
@@ -1374,10 +1422,23 @@ version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c06810dac15a4ef83d3dabdb4f2f22fb39c9adff669cd2781da4f716510a647c"
 dependencies = [
- "solana-account-view",
+ "solana-account-view 1.0.0",
  "solana-address",
  "solana-define-syscall 4.0.1",
- "solana-instruction-view",
+ "solana-instruction-view 1.0.0",
+ "solana-program-error",
+]
+
+[[package]]
+name = "pinocchio"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6cababcb62a2e739c7078ae16eda02789a6e3edd21bbdded864e85c38a7914d"
+dependencies = [
+ "solana-account-view 2.0.0",
+ "solana-address",
+ "solana-define-syscall 5.4.0",
+ "solana-instruction-view 2.1.0",
  "solana-program-error",
 ]
 
@@ -1536,6 +1597,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
+name = "rayon"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
+dependencies = [
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1633,6 +1714,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde_bytes"
+version = "0.11.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
+dependencies = [
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1650,6 +1752,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1770,6 +1883,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "solana-account-view"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc141b940560430425ebaadb7645496c45f6a10fad9911d719bd03eab7f4d422"
+dependencies = [
+ "solana-address",
+ "solana-program-error",
+]
+
+[[package]]
 name = "solana-address"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1880,9 +2003,21 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60147e4d0a4620013df40bf30a86dd299203ff12fcb8b593cd51014fce0875d8"
 dependencies = [
- "solana-account-view",
+ "solana-account-view 1.0.0",
  "solana-address",
  "solana-define-syscall 4.0.1",
+ "solana-program-error",
+]
+
+[[package]]
+name = "solana-instruction-view"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ab7a27d0c4214b9f7389c3dd00b68c93093a67f1dcc5b7893aebe299bbcbb47"
+dependencies = [
+ "solana-account-view 2.0.0",
+ "solana-address",
+ "solana-define-syscall 5.4.0",
  "solana-program-error",
 ]
 
@@ -1990,6 +2125,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "spr-account-checks"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "555e62b7f3757c272906cd32e9012185e667728bcd21fd1c9ea86621d9fcc1e8"
+dependencies = [
+ "solana-account-view 2.0.0",
+ "solana-address",
+ "solana-program-error",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "spr-event"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2021,6 +2168,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8560f50221a9d67151ee5aaff778f448c68ba22994aca2584706387cc449c923"
 dependencies = [
+ "pinocchio 0.11.2",
  "solana-address",
  "solana-instruction",
  "solana-pubkey",
@@ -2066,6 +2214,8 @@ dependencies = [
  "getrandom 0.3.4",
  "hkdf",
  "rand 0.8.8",
+ "serde",
+ "serde_bytes",
  "sha2 0.10.9",
  "solana-address",
  "solana-keypair",
@@ -2074,6 +2224,8 @@ dependencies = [
  "spr-zk-dsl",
  "spr-zk-gadgets",
  "thiserror 2.0.21",
+ "tsify",
+ "wasm-bindgen",
  "x25519-dalek",
  "zeroize",
 ]
@@ -2101,6 +2253,10 @@ dependencies = [
  "ark-ff 0.6.0",
  "borsh",
  "groth16-solana",
+ "pinocchio 0.11.2",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
  "sha2 0.10.9",
  "solana-address",
  "solana-program-error",
@@ -2111,9 +2267,12 @@ dependencies = [
  "spr-keypair",
  "spr-macros",
  "spr-transaction",
+ "spr-tree",
  "spr-zk-dsl",
  "spr-zk-gadgets",
  "thiserror 2.0.21",
+ "tsify",
+ "wasm-bindgen",
  "wincode 0.5.5",
 ]
 
@@ -2126,6 +2285,7 @@ dependencies = [
  "ark-bn254 0.6.0",
  "borsh",
  "num-bigint",
+ "serde",
  "solana-address",
  "solana-signature",
  "spr-event",
@@ -2136,6 +2296,8 @@ dependencies = [
  "spr-zk-dsl",
  "spr-zk-gadgets",
  "thiserror 2.0.21",
+ "tsify",
+ "wasm-bindgen",
  "wincode 0.5.5",
 ]
 
@@ -2170,14 +2332,24 @@ dependencies = [
  "ark-serialize 0.6.0",
  "ark-std 0.6.0",
  "borsh",
+ "console_error_panic_hook",
  "getrandom 0.2.17",
  "groth16-solana",
+ "hex",
+ "js-sys",
+ "rayon",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_bytes",
+ "serde_json",
  "sha2 0.10.9",
  "solana-address",
  "solana-bn254",
  "spr-hasher",
  "spr-zk-macros",
  "thiserror 2.0.21",
+ "tsify",
+ "wasm-bindgen",
  "wincode 0.5.5",
 ]
 
@@ -2431,6 +2603,30 @@ dependencies = [
  "thread_local",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tsify"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea3af6b48c5c5624f7eb3c2f578d1335fadac433321980cae0063e8eb0acaa44"
+dependencies = [
+ "serde",
+ "serde-wasm-bindgen",
+ "tsify-macros",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tsify-macros"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef1e2e93369379d0a527c7d6632b58c55d52db7a106d8afbde3b354f3a57a9f1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2699,6 +2895,27 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "zk-template"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "getrandom 0.4.3",
+ "pinocchio 0.11.2",
+ "ringstack-zk-gadgets",
+ "solana-instruction",
+ "solana-program-error",
+ "solana-signature",
+ "spr-account-checks",
+ "spr-hasher",
+ "spr-interface",
+ "spr-keypair",
+ "spr-program",
+ "spr-transaction",
+ "thiserror 2.0.21",
+ "wincode 0.5.5",
 ]
 
 [[package]]
