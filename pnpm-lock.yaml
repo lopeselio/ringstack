@@ -294,6 +294,18 @@ importers:
 
   packages/ringd-client: {}
 
+  zk/template/client:
+    dependencies:
+      '@heliuslabs/zolana':
+        specifier: 0.8.0-alpha
+        version: 0.8.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+      '@ringstack/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@solana/kit':
+        specifier: ^8.6.0
+        version: 8.6.0(typescript@5.9.3)
+
 packages:
 
   '@astrojs/compiler-binding-android-arm64@0.5.2':
