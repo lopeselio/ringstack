@@ -13,6 +13,10 @@
 //!   Poseidon Merkle root, and the native tree for the client.
 //! - [`harness`] (feature `harness`): the checks every gadget is tested with.
 //!
+//! Binding a committed term to a public input needs no gadget: it is
+//! `public.assert_equal(&committed, RULE)`. What matters is that every term the
+//! program enforces has that line, a named rule and a negative test.
+
 #![forbid(unsafe_code)]
 #![deny(unused_must_use)]
 
