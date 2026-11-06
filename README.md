@@ -13,7 +13,7 @@ Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (S
 | 1 | [RingPay](docs/ideas/01-ringpay.md) | Private payment requests, receipts and payee proofs ([verifier](https://lopeselio.github.io/ringstack/verify/)) | Built, devnet |
 | 2 | [ringd](apps/ringd) | Self-hosted payment watcher with signed webhooks and auto-merge | Built, devnet |
 | 4 | [Private payroll](apps/payroll) | CSV → batched private payouts, audit bundle, payee proofs | Built, devnet |
-| 3 | [Agent payments](packages/paywall) | HTTP 402 paywall + [MCP agent wallet](apps/agent-mcp) with spend limits | Built, devnet |
+| 3 | [Agent payments](packages/paywall) | HTTP 402 paywall + [MCP agent wallet](apps/agent-mcp) with spend limits ([live demo API](https://ringstack-paywall-demo.azurewebsites.net)) | Built, devnet |
 | 5 | [Leak analyzer](packages/leakscan) | Linkability scoring, withdrawal advisor, [daily public report](https://lopeselio.github.io/ringstack/leaks/) | Built, devnet |
 | 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Circuit gadget library + template for SPP ZK programs | Not started |
 

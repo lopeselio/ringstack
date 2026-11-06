@@ -2,6 +2,13 @@
 
 A pay-per-call API behind [`@ringstack/paywall`](../../packages/paywall): made-up weather forecasts at 0.0005 SOL per call, paid privately.
 
+**Live on devnet:** https://ringstack-paywall-demo.azurewebsites.net (Azure App Service free tier, so the first call after it has been idle is slow). Pay it from an agent wallet:
+
+```bash
+AGENT_KEYPAIR=.devnet/agent.json ZOLANA_NETWORK=devnet \
+  pnpm --filter @ringstack/paywall-demo call "https://ringstack-paywall-demo.azurewebsites.net/v1/forecast?city=Lisbon"
+```
+
 | Route | |
 |---|---|
 | `GET /` | Free: what it sells and how to pay |
