@@ -21,6 +21,8 @@ description: The path of one private payment through ringstack, and the packages
 | `@ringstack/ringd-client` | Webhook event types, signing and `verifyWebhook`. |
 | `apps/ringd` | The watcher daemon and its CLI. |
 | `apps/payroll` | The payroll CLI: `plan`, `run`, `audit`, `prove`. |
+| `@ringstack/derivation-guard` | `isTsppDerivationRequest` for wallets, test vectors, and a page guard for Wallet Standard and injected providers. |
+| `apps/derivation-guard-extension` | The browser extension that runs the guard in every page. |
 | `apps/verifier` | The static verifier page (Vite). |
 | `apps/checkout-demo`, `apps/checkout-api` | The demo shop (Next.js) and its backend (NestJS on Fastify). |
 

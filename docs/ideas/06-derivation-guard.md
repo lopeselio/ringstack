@@ -1,6 +1,6 @@
 # 6. Derivation-signature phishing guard
 
-**Status:** Backlog · **Type:** Small browser extension / wallet plugin
+**Status:** Built ([`@ringstack/derivation-guard`](../../packages/derivation-guard), [extension](../../apps/derivation-guard-extension)) · **Type:** Small browser extension / wallet plugin
 
 ## Problem
 The shielded keypair is derived from a signature over `"TSPP/derive/v1"`. Whoever obtains that signature can derive the viewing and nullifier keys and **decrypt all of a user's private activity**. The docs say wallets must reject third-party requests to sign it, but a malicious dApp can still ask.
@@ -11,4 +11,4 @@ The shielded keypair is derived from a signature over `"TSPP/derive/v1"`. Whoeve
 - Test vectors for all known encodings.
 
 ## Notes
-Check upstream `feat/sign-with-wallet-adapter` before building, to align with whatever wallet integration Helius ships.
+Upstream (0.8.0-alpha) ships `isDerivationInput` and refuses derivation input in the SDK's own `SigningKey.sign`, but nothing guards a browser wallet a dApp asks directly. The detector here refuses everything `isDerivationInput` refuses (property-tested) plus a few envelopes it lets through, and the page guard covers Wallet Standard and injected providers. It runs in the page, so a site using a wallet's private messaging goes around it; the full fix is wallets calling the detector in their own signing path.

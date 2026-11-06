@@ -30,6 +30,8 @@ export default defineConfig({
             "tools/paywall-demo",
             "tools/leakscan",
             "tools/leak-report",
+            "tools/derivation-guard",
+            "tools/derivation-guard-extension",
           ],
         },
         {
