@@ -15,7 +15,7 @@ import { randomBlinding, solanaOwnerIdentity } from "@heliuslabs/spr/keypair";
 import { ProgramOwner, ShieldedPda, bindProgramTransaction, type ProgramWalletUtxo } from "@heliuslabs/spr/program";
 import { AssetRegistry } from "@heliuslabs/spr/transaction";
 import { clientConfigFromEnv, fund } from "@ringstack/core";
-import { address, getAddressEncoder } from "@solana/kit";
+import { SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM, address, getAddressEncoder, isSolanaError } from "@solana/kit";
 
 import {
   NOT_YET_UNLOCKED,
@@ -42,15 +42,16 @@ function check(cond: boolean, msg: string): asserts cond {
 const total = (utxos: readonly ProgramWalletUtxo[]) => utxos.reduce((sum, u) => sum + u.utxo.amount, 0n);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** The `{ Custom: n }` code inside a failed transaction's error, wherever the RPC nests it. */
-function customError(error: unknown, seen = new Set<unknown>()): number | undefined {
-  if (error === null || typeof error !== "object" || seen.has(error)) return undefined;
-  seen.add(error);
-  const custom = (error as Record<string, unknown>)["Custom"];
-  if (typeof custom === "number" || typeof custom === "bigint") return Number(custom);
-  for (const value of [...Object.values(error), (error as { cause?: unknown }).cause, (error as { context?: unknown }).context]) {
-    const found = customError(value, seen);
-    if (found !== undefined) return found;
+/** The program logs a failed simulation carries, for a readable failure. */
+function logsOf(error: unknown): string {
+  const context = (error as { context?: { logs?: unknown } } | undefined)?.context;
+  return Array.isArray(context?.logs) ? `\n  ${context.logs.join("\n  ")}` : "";
+}
+
+/** The custom program error code a failed transaction carries, from kit's typed error chain. */
+function customError(error: unknown): number | undefined {
+  for (let e: unknown = error; e !== undefined && e !== null; e = (e as { cause?: unknown }).cause) {
+    if (isSolanaError(e, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM)) return Number(e.context.code);
   }
   return undefined;
 }
@@ -161,7 +162,7 @@ try {
     (error: unknown) => error,
   );
   check(early !== undefined, "a release before the unlock time was accepted");
-  check(customError(early) === NOT_YET_UNLOCKED, `early release failed for another reason: ${String(early)}`);
+  check(customError(early) === NOT_YET_UNLOCKED, `early release failed for another reason: ${String(early)}${logsOf(early)}`);
   console.log("early release → refused onchain (NotYetUnlocked)");
 
   while ((await chainTime()) <= unlock) await sleep(3_000);
