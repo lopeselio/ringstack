@@ -23,5 +23,21 @@ jobs:
       - run: pnpm --filter @ringstack/checkout-demo build
       - run: pnpm --filter @ringstack/docs build
 
+  zk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: zk
+    steps:
+      - uses: actions/checkout@v4
+      # rustup reads zk/rust-toolchain.toml (upstream's 1.98.1) on first use.
+      - run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zk
+      - run: cargo fmt --all --check
+      - run: cargo clippy --release --all-targets --features harness -- -D warnings
+      - run: cargo test --release --features harness
+
 # Integration tests run against devnet in devnet.yml (nightly and on demand):
 # zolana 0.8 publishes no local-stack binaries, so there is no localnet job.
