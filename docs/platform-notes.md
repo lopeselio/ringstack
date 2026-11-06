@@ -75,11 +75,11 @@ struct Utxo {
 
 ## ZK programs
 
-Example repo `helius-labs/zolana-examples`:
-- `escrow-program`: timelock escrow. Pinocchio program, gnark (Go) circuits in `prover/circuits`, Rust prover, verifying keys compiled into the program.
-- `swap-program`: confidential maker/taker swap with verifiable encryption.
+As of 0.8, upstream writes ZK programs in a Rust DSL ([`spr-program`](https://crates.io/crates/spr-program), arkworks Groth16): one `circuit` fn runs natively on the client and as R1CS in the prover, and `zolana build-zk-program` generates the keys and the verifier modules the program commits. The reference program is `sdk-tests/timelock-escrow` in `helius-labs/zolana`; [Z0](spikes/z0-zk-dsl.md) builds and runs it.
 
-Writing a ZK program means: gnark circuit → trusted setup / proving key → verifying key embedded in program → client prover. This is the gap that idea 7 targets.
+The older example repo `helius-labs/zolana-examples` still has `escrow-program` with gnark (Go) circuits and `swap-program`, a confidential maker/taker swap.
+
+The program verifies its own proof, then CPIs `transact` into the pool, which verifies the pool proof; both commit to the same `private_tx_hash`. What upstream leaves to each team, multi-party patterns and the wiring around a program, is the gap idea 7 targets.
 
 ## SDKs & versions
 

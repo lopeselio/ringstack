@@ -17,7 +17,7 @@ crates/
   ringd/           # sync daemon (idea 2)
   payroll/         # CLI (idea 4), or TS under packages/ if SDK coverage is better
 zk/
-  gadgets/         # gnark gadgets (idea 7)
+  gadgets/         # Rust gadgets on spr-program (idea 7)
   template/        # program + circuit + prover starter
   examples/milestone-escrow/
 spec/
@@ -61,12 +61,14 @@ spec/
 - [x] #5 Privacy leak analyzer: `@ringstack/leakscan` (scan, aggregate stats, withdrawal advisor) and a daily public report at https://lopeselio.github.io/ringstack/leaks/.
 
 ## Track Z: zk-gadgets (parallel, longer)
-- [ ] Z0: Build and run upstream `escrow-program` locally (Go ≥1.27.1, `cargo build-sbf`).
-- [ ] Z1: Extract `utxo` + `conservation` gadgets; upstream escrow tests still pass.
-- [ ] Z2: `range`, `timelock`, `threshold` gadgets with negative tests + constraint counts.
-- [ ] Z3: Template (program + circuit + setup + prover + SDK) running on localnet.
-- [ ] Z4: Milestone escrow reference program.
-- [ ] Z5: Property/fuzz testing; request external review.
+Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8), which already covers UTXO hashing, conservation and range checks ([Z0 findings](spikes/z0-zk-dsl.md)).
+
+- [x] Z0: Build and run upstream `sdk-tests/timelock-escrow` on `spr-program` 0.8: circuit prove/verify, `cargo build-sbf`, verifier modules `--check`; baseline 14,880 / 5,638 constraints.
+- [ ] Z1: `zk/gadgets` crate and harness: constraint checks, constraint counts, negative tests that must fail by rule name.
+- [ ] Z2: `terms`, `timelock`, `threshold`, `allowlist` with negative tests + constraint counts.
+- [ ] Z3: Template (program + circuits + verifier modules + client), with a devnet test.
+- [ ] Z4: Milestone escrow reference program, end to end on devnet.
+- [ ] Z5: Property tests, Picus under-constraint check; request external review.
 
 ## Cross-cutting risks
 - Alpha API churn: track `helius-labs/zolana` releases; isolate SDK calls behind `core`.
