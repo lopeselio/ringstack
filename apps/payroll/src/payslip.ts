@@ -5,7 +5,6 @@
 import { SOL_MINT } from "@heliuslabs/zolana";
 import { resolveRegisteredAddress } from "@heliuslabs/zolana/wallet";
 import {
-  decodeMemo,
   decodePaymentProof,
   encodePaymentProof,
   fetchShieldedTransaction,
@@ -26,27 +25,29 @@ export interface Payslip {
   readonly memo?: string;
 }
 
-/** Incoming payments from the payee's synced wallet, newest first. */
-export function listPayslips(session: RingSession): Payslip[] {
-  const memos = new Map<bigint, string>();
-  for (const e of session.wallet.utxos()) {
-    const memo = decodeMemo(e.utxo.data.memo());
-    if (memo !== undefined) memos.set(e.outputContext.leafIndex, memo);
-  }
-  return session.wallet
+/**
+ * Incoming payments from the payee's synced wallet, newest first. Memos travel
+ * as transaction messages, so each payment's transaction is fetched once.
+ */
+export async function listPayslips(session: RingSession): Promise<Payslip[]> {
+  const rows = session.wallet
     .privateTransactions()
     .filter((row) => row.direction === "inbound" && row.kind === "privateTransfer")
-    .sort((a, b) => (a.id.slot === b.id.slot ? 0 : a.id.slot > b.id.slot ? -1 : 1))
-    .map((row) => {
-      const memo = memos.get(row.id.index);
-      return {
-        signature: row.id.signature,
-        slot: row.id.slot.toString(),
-        asset: row.asset,
-        amount: row.amount.toString(),
-        ...(memo === undefined ? {} : { memo }),
-      };
-    });
+    .sort((a, b) => (a.id.slot === b.id.slot ? 0 : a.id.slot > b.id.slot ? -1 : 1));
+  const memos = new Map<string, Map<bigint, string>>();
+  for (const signature of new Set(rows.map((row) => row.id.signature))) {
+    memos.set(signature, await session.receivedMemos(signature as Signature));
+  }
+  return rows.map((row) => {
+    const memo = memos.get(row.id.signature)?.get(row.id.index);
+    return {
+      signature: row.id.signature,
+      slot: row.id.slot.toString(),
+      asset: row.asset,
+      amount: row.amount.toString(),
+      ...(memo === undefined ? {} : { memo }),
+    };
+  });
 }
 
 /** A `ringproof1:` link for the payee's output in `signature`. */

@@ -99,12 +99,6 @@ async function plan(args: string[]) {
         `To run them concurrently: payroll split --keypair <treasury> --parts ${built.batches.length}`,
     );
   }
-  const withMemo = built.batches.flatMap((b) => b.payments).filter((p) => p.memo !== undefined).length;
-  if (withMemo > 0) {
-    notes.push(
-      `${withMemo} payment(s) carry a memo. Until helius-labs/zolana#543 is fixed, the SDK's built-in transfer, withdraw and merge skip memo payments; payees need a wallet that spends them through the lower-level builder.`,
-    );
-  }
   if (built.skipped.length > 0) {
     notes.push(`${built.skipped.length} payee(s) are not registered for private payments and were skipped.`);
   }
@@ -205,7 +199,7 @@ async function payslips(args: string[]) {
   const { values } = parseArgs({ args, options: { keypair: { type: "string" } } });
   if (!values.keypair) throw new Error(USAGE);
   const session = await openSession(values.keypair);
-  const slips = listPayslips(session);
+  const slips = await listPayslips(session);
   if (slips.length === 0) console.log("no incoming payments yet");
   for (const p of slips) {
     console.log(`${p.signature}  slot ${p.slot}  ${formatAmount(BigInt(p.amount), p.asset)}${p.memo ? `  "${p.memo}"` : ""}`);
