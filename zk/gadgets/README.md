@@ -1,8 +1,34 @@
 # zk-gadgets
 
-Building blocks for SPP ZK programs written in upstream's circuit DSL ([`spr-program`](https://crates.io/crates/spr-program) 0.8). The DSL already constrains UTXO hashing, ownership, conservation and range checks; this crate is the layer above: binding committed terms to what a program checks, timelocks, M-of-N approvals and allowlists. Those land in Z2; see the [roadmap](../../docs/roadmap.md) and the [Z0 findings](../../docs/spikes/z0-zk-dsl.md) for why the plan looks like this.
+Building blocks for SPP ZK programs written in upstream's circuit DSL ([`spr-program`](https://crates.io/crates/spr-program) 0.8). The DSL already constrains UTXO hashing, ownership, conservation and range checks, so nothing here rebuilds those. This crate is the layer above. The [Z0 findings](../../docs/spikes/z0-zk-dsl.md) explain why the plan looks like this.
 
-What is here now is the harness every gadget is tested with.
+## Gadgets
+
+| Module | Feature | What it proves | Constraints |
+|---|---|---|---:|
+| `threshold` | `circuit` | At least M distinct approvers from a committed set signed: every signer is an approver, none counted twice, M is not zero | 77 (5 approvers, 3 signer slots) |
+| `allowlist` | `circuit` | An identity is a member of a set committed as a Poseidon Merkle root, at an index range-checked to the tree's depth | 1,220 (16 members) |
+| `timelock` | none | The program's half: `is_unlocked(now, unlock)` and `is_before(now, deadline)` on the clock's `i64` | n/a (onchain, no circuit) |
+
+Counts are measured and pinned in the tests, so a change in cost shows up in review. For scale, upstream's timelock escrow circuit is 14,880.
+
+### The binding pattern
+
+Most of what goes wrong in a ZK program is a term the circuit and the program disagree on. An unlock time, an approver set or an allowlist root lives in the UTXO's data, and the program enforces it through a public input. The circuit's whole job for that term is one line:
+
+```rust
+public.unlock.assert_equal(&terms.unlock, "the unlock time is the committed one")?;
+```
+
+There is no gadget for that line, because `assert_equal` already is one. What matters is that every enforced term has the line, a named rule and a negative test. `tests/terms.rs` shows what a prover gets away with without it.
+
+### Contracts
+
+Each gadget states what its caller must do; the tests pin them.
+
+- **`threshold`**: bind the approver set and threshold to committed terms, for example by reading them from the `DataUtxo` being spent. The harness found that the gadget alone leaves unused approver slots unconstrained: once a signer matches one approver, the other slots affect no constraint. A test pins that finding (the gadget alone has a free variable) and the fix (binding the set to a commitment: 450 constraints, none free). The program must fill the public signer slots only from accounts that signed (`solana_owner_identity` of each), zero for an empty slot.
+- **`allowlist`**: the root must be a committed term or a public input the program checks. `Allowlist` builds the tree natively with the same `poseidon` gadget evaluated on constants, so a client's roots and paths match the circuit's by construction.
+- **`timelock`**: the time must be bound in the circuit (the pattern above) *and* checked by the program. `is_unlocked` is strict and treats a negative clock as locked, the same as upstream's escrow.
 
 ## The harness
 
@@ -14,7 +40,9 @@ A circuit can look right and still be unsound. Three ways that happens, and the 
 | A missing bound | The gadget accepts too much, like a square root check with no upper bound that passes any smaller root | `assert_refuses` per rule: a negative case for every rule, which must fail with exactly that rule's name |
 | A free private variable | A private input no constraint pins down, so the prover can set it to anything | `assert_no_free_variables` perturbs each private variable and reports any the constraints don't notice |
 
-`assert_accepts` passes a valid input natively and in R1CS and returns the constraint count, so tests pin it and a change in cost shows up in review.
+`assert_accepts` passes a valid input natively and in R1CS and returns the constraint count, so tests pin it and a change in cost shows up in review. `assert_refused_by` covers a refusal that is not a named rule, such as `ValueTooLarge` from a range check.
+
+A negative case only counts if the constraints refused it. The harness reports whether the R1CS for an input was satisfied, unsatisfied, or could not be generated at all. It fails a negative case that only reached the last: there, the constraints were never checked.
 
 ```rust
 use ringstack_zk_gadgets::harness::{assert_accepts, assert_no_free_variables, assert_refuses};
