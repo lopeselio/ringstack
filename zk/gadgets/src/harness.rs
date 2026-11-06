@@ -36,20 +36,43 @@ pub fn refusal(error: ProverError) -> Refusal {
     (error.name(), error.broken_rule())
 }
 
-/// Whether the R1CS alone accepts `inputs`: constraints generated from
-/// variables, no native run. A native refusal returns before any constraint is
-/// checked, so this is the only way to see that the constraints, which are all
-/// a verifier relies on, refuse the input too.
-pub fn r1cs_accepts<P: ZkCircuit>(inputs: &P) -> bool {
+/// What the R1CS alone makes of `inputs`: constraints generated from
+/// variables, no native run.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum R1cs {
+    /// The constraints are satisfied.
+    Satisfied,
+    /// The constraints were generated and the witness breaks one: the
+    /// refusal a verifier relies on.
+    Unsatisfied,
+    /// Generating the constraints failed for this witness, so they were never
+    /// checked. A negative case that ends here proves nothing about the
+    /// constraints; test it by tampering a valid witness instead
+    /// (`spr_program::testing::check_tampered`).
+    GenerationFailed,
+}
+
+/// Generates the R1CS for `inputs` and checks it. A native refusal returns
+/// before any constraint is checked, so this is the only way to see that the
+/// constraints, which are all a verifier relies on, refuse the input too.
+pub fn r1cs(inputs: &impl ZkCircuit) -> R1cs {
     let cs = ConstraintSystem::new_ref();
-    let instance = match inputs.instantiate(&Allocator::R1cs(cs.clone())) {
-        Ok(instance) => instance,
-        Err(_) => return false,
+    let Ok(instance) = inputs.instantiate(&Allocator::R1cs(cs.clone())) else {
+        return R1cs::GenerationFailed;
     };
-    match instance.circuit() {
-        Ok(_) => cs.is_satisfied().expect("R1CS satisfaction"),
-        Err(_) => false,
+    if instance.circuit().is_err() {
+        return R1cs::GenerationFailed;
     }
+    if cs.is_satisfied().expect("R1CS satisfaction") {
+        R1cs::Satisfied
+    } else {
+        R1cs::Unsatisfied
+    }
+}
+
+/// Whether the R1CS alone accepts `inputs`.
+pub fn r1cs_accepts<P: ZkCircuit>(inputs: &P) -> bool {
+    r1cs(inputs) == R1cs::Satisfied
 }
 
 /// A valid input: passes natively and in R1CS. Returns the constraint count.
@@ -65,23 +88,36 @@ pub fn assert_accepts<P: ZkCircuit>(inputs: &P) -> usize {
     constraints
 }
 
-/// An invalid input: refused natively by exactly `rule`, and unsatisfiable in
-/// R1CS. A refusal by another rule fails the test, because it means the rule
-/// under test was never reached.
+/// An invalid input: refused natively by exactly `rule`, and the R1CS built
+/// from it is unsatisfied. A refusal by another rule fails the test, because
+/// it means the rule under test was never reached.
 #[track_caller]
 pub fn assert_refuses<P: ZkCircuit>(inputs: &P, rule: &'static str) {
+    assert_refused_by(inputs, (RULE_BROKEN, Some(rule)));
+}
+
+/// [`assert_refuses`] for a refusal that is not a named rule, such as
+/// `("CircuitError.ValueTooLarge", None)` from a range check on an input.
+#[track_caller]
+pub fn assert_refused_by<P: ZkCircuit>(inputs: &P, expected: Refusal) {
     match inputs.check_constraints() {
-        Ok(_) => panic!("an invalid input was accepted; expected the rule {rule:?}"),
+        Ok(_) => panic!("an invalid input was accepted; expected {expected:?}"),
         Err(error) => assert_eq!(
             refusal(error),
-            (RULE_BROKEN, Some(rule)),
+            expected,
             "refused for another reason than the rule under test"
         ),
     }
-    assert!(
-        !r1cs_accepts(inputs),
-        "refused natively but the R1CS accepts it: the rule {rule:?} adds no constraint"
-    );
+    match r1cs(inputs) {
+        R1cs::Unsatisfied => {}
+        R1cs::Satisfied => {
+            panic!("refused natively but the R1CS accepts it: {expected:?} adds no constraint")
+        }
+        R1cs::GenerationFailed => panic!(
+            "the R1CS for this input could not be generated, so its constraints were never \
+             checked; tamper a valid witness instead"
+        ),
+    }
 }
 
 /// No private variable of a valid input is left free.
