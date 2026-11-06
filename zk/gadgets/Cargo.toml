@@ -24,3 +24,7 @@ required-features = ["harness"]
 [[test]]
 name = "threshold"
 required-features = ["harness"]
+
+[[test]]
+name = "allowlist"
+required-features = ["harness"]

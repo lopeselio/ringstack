@@ -9,11 +9,15 @@
 //!   friendly, so an onchain program can use it.
 //! - [`threshold`] (feature `circuit`): M-of-N approvals against a committed
 //!   approver set.
+//! - [`allowlist`] (feature `circuit`): membership in a set committed as a
+//!   Poseidon Merkle root, and the native tree for the client.
 //! - [`harness`] (feature `harness`): the checks every gadget is tested with.
 //!
 #![forbid(unsafe_code)]
 #![deny(unused_must_use)]
 
+#[cfg(feature = "circuit")]
+pub mod allowlist;
 #[cfg(feature = "harness")]
 pub mod harness;
 #[cfg(feature = "circuit")]
