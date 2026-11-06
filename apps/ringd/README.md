@@ -52,7 +52,7 @@ Logs are JSON lines. Each new event is logged as `{"msg":"event", "seq":…, …
 ```
 
 - `id` is `<signature>:<index>` from the SDK's stable history row id. With `wallet` it is the idempotency key: storage is unique on it, and webhook deliveries will carry it.
-- `memo` is the decrypted memo on the received output ([memo.ts](../../packages/core/src/memo.ts)), for matching RingPay orders.
+- `memo` is the decrypted memo for the received output ([memo.ts](../../packages/core/src/memo.ts)), for matching RingPay orders. Memos travel as encrypted transaction messages, so ringd fetches each new payment's transaction once to read it; if that fetch fails, the cycle retries rather than send the event without its memo.
 - `backfill: true` marks events found on a wallet's first sync, which is history from before ringd watched it.
 - Amounts are base units as strings.
 
@@ -131,7 +131,7 @@ max_inputs = 24                 # UTXOs per merge (2–24, default 24)
 - A merge spends with the **nullifier key** (in the key file) and is proved with the viewing + nullifier keys. The only signer is the **fee payer**, a separate hot wallet with just enough SOL for fees, never the owner. The owner's balance and keys are untouched.
 - The owner must opt in once, from their own wallet: `RingSession.setMerge(true)` (`buildSetMergeEncryptionTransaction` with `PoseidonCtrV1`). Until then ringd logs `merge skipped` once per run and leaves the wallet alone.
 - Each cycle, after recording events, ringd merges the smallest UTXOs (up to `max_inputs`) of any asset at or over the threshold. The merge shows up as a `utxo.merged` event on the next cycle.
-- **Memo payments are merged too.** The SDK's merge refuses UTXOs that carry a memo ([helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543)); ringd rebuilds each one without its memo (the memo is outside the commitment, so the hash is unchanged) and merges through the lower-level builder. The merged output has no memo; the memo was already delivered in its `payment.received` event.
+- **Legacy memo payments are merged too.** Payments made before memos moved to messages carry the memo inside the output, and the SDK's merge refuses those ([helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543)). ringd rebuilds each one without its memo (the memo is outside the commitment, so the hash is unchanged) and merges through the lower-level builder. The memo was already delivered in its `payment.received` event.
 
 ## How state works
 

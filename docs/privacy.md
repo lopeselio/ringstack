@@ -12,7 +12,7 @@ Amounts and assets of private transfers, memos, which output is change, and whic
 - **Deposits and withdrawals.** Moving funds in or out of the pool is a public transfer with a public amount and address.
 - **The user registry.** Which Solana addresses registered for private payments is public; so is a wallet's merge opt-in.
 - **Fee payers.** Whoever pays a transaction's fee is public: for example, the fee payer ringd uses for auto-merges links those merges to its operator.
-- **That a memo is present.** An output with a memo has a longer ciphertext than one without, so its presence (not its content) is visible.
+- **That a memo is present.** A memo is a fixed-width encrypted message carrying its output's view tag, so observers see that an output has a memo (not its content). The tag is the output's own, so the message links nothing new.
 
 ## Visible to service operators
 
@@ -26,6 +26,6 @@ Amounts and assets of private transfers, memos, which output is change, and whic
 - A **payment proof** (`ringproof1:`) opens one output, permanently.
 - An **audit bundle** opens every transaction of one pay run.
 
-## SDK caveat
+## Memos and SDK wallets
 
-Until [helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543) is resolved, the SDK's built-in transfer, withdraw and merge skip UTXOs that carry a memo. `@ringstack/core`'s `RingSession` spends, withdraws (SOL) and merges them through the lower-level builders.
+Memos travel as encrypted transaction messages ([helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543)), so received outputs stay plain and the SDK's built-in transfer, withdraw and merge spend them. Payments made before this change put the memo inside the output, and the SDK skips those; `@ringstack/core`'s `RingSession` and ringd still spend, withdraw (SOL) and merge them through the lower-level builders.

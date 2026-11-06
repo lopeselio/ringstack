@@ -27,7 +27,7 @@ ringpay:<recipient>?amount=<amount>&mint=<mint>&order=<order>&label=<label>&mess
 
 ## Memo schema
 
-The memo is the fixed-width encrypted memo from `core/src/memo.ts`: 32 bytes of UTF-8, zero-padded. For a request with `order`, the payer's wallet sets the memo on the recipient's output to:
+The memo is the fixed-width encrypted memo from `core/src/memo.ts`: 32 bytes of UTF-8, zero-padded. For a request with `order`, the payer's wallet attaches this memo to the recipient's output, as an encrypted transaction message carrying that output's view tag:
 
 ```
 order:<order>
@@ -35,7 +35,7 @@ order:<order>
 
 The longest order id is therefore 32 − 6 = 26 bytes. A memo that does not start with `order:` is free text and is not an order reference. Future memo kinds use other `<kind>:` prefixes.
 
-The merchant matches payments to orders by reading the memo of each received output: ringd delivers it as `memo` in `payment.received` webhooks.
+The merchant matches payments to orders by reading the memo of each received output: ringd delivers it as `memo` in `payment.received` webhooks. (Payments made before memos moved to messages carry the memo inside the output instead; readers accept both.)
 
 ## Paying a request (wallet rules)
 
@@ -52,7 +52,7 @@ The merchant matches payments to orders by reading the memo of each received out
 
 - The URI itself is not private. Anyone who sees the QR code or link learns the merchant, amount and order id. Share it the way you would share an invoice.
 - Onchain, the transfer hides the amount, asset and memo. Sender and recipient addresses are visible as transaction participants, so a merchant address used only for one shop still reveals "this payer paid this shop". Anonymous custom rings would be needed to hide that.
-- A memo makes its output's ciphertext longer than an output without one, so observers can tell which output carries a memo, though not its content (see `docs/spikes/m0-sdk-findings.md`).
+- Observers can tell that an output has a memo (a fixed-width message with that output's view tag), though not its content.
 - Matching on exact amounts is not needed: the order id in the memo identifies the payment.
 
 ## Examples

@@ -39,7 +39,7 @@ GNhaRndM8JGXUhsfgWXGR7XdcWnioBbuZueyaJ2zsYsD,1250.50,Payroll 2026-11
 - Validates every row, collecting all errors before failing.
 - Checks each payee in the user registry. **Unregistered payees are skipped and listed**: paying them would be a public withdrawal.
 - Batches in CSV order, up to 15 payees per transaction (`--max-per-batch`). The same payee never appears twice in one batch.
-- Pre-flight notes: treasury balance shortfall, whether batches can run concurrently (one UTXO per batch; suggests `split`), and the memo spendability caveat below.
+- Pre-flight notes: treasury balance shortfall, and whether batches can run concurrently (one UTXO per batch; suggests `split`).
 - `plan.json` carries a `planId` hash of its contents. `run` refuses a plan that was edited afterwards.
 
 ## run
@@ -87,7 +87,7 @@ The proof discloses one X25519 shared secret that opens only that payee's output
 
 - Amounts and memos are encrypted. The treasury and the payees are visible as transaction participants, so observers can see *who* is on payroll, not *how much*.
 - **One transaction key opens a whole batch.** That is why batch receipts live in the audit bundle (for someone entitled to see the whole run) rather than going to each payee. Payees prove their own pay with a per-payee proof instead.
-- **Memo payments and SDK wallets:** until [helius-labs/zolana#543](https://github.com/helius-labs/zolana/issues/543) is fixed, the SDK's built-in transfer, withdraw and merge skip UTXOs that carry a memo. Payees need a wallet that spends them through the lower-level builder (such as `RingSession` in `@ringstack/core`). Leave `memo` empty if that is a problem.
+- **Memos** travel as encrypted transaction messages, so payees receive plain UTXOs that any SDK wallet spends. A payee's wallet reads the memo from the transaction (`RingSession.receivedMemos`); wallets that ignore messages still get the funds, just not the memo.
 
 ## Check on devnet
 

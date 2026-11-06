@@ -71,4 +71,4 @@ The policy is checked **before** paying: host and recipient allow-lists, SOL onl
 - **Latency:** a payment is a proof plus a confirmation, so a few seconds. Fine for expensive calls; for many cheap calls, prepay (for example, one payment for a block of calls) instead of paying per request.
 - **Bearer signature:** whoever presents a paid signature first gets the call. The signature is only sent to the API, over HTTPS.
 - **Linkability:** amounts and order ids are encrypted, but the agent ↔ API addresses are visible onchain ([privacy limits](../../docs/privacy.md)).
-- **Memo payments:** the API's received payments carry memos, so until [zolana#543](https://github.com/helius-labs/zolana/issues/543) is fixed, spend them with `RingSession` (or merge them with ringd).
+- **Memos** (the challenge nonce) travel as encrypted transaction messages, so the API's received payments are plain UTXOs that any SDK wallet spends.
