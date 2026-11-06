@@ -1,0 +1,135 @@
+{
+  "description": "Sign requests for the Helius Privacy key-derivation message. `refuse` is what a wallet should do for a third-party request; `sdkRefuses` is @heliuslabs/zolana isDerivationInput.",
+  "sdk": "@heliuslabs/zolana@0.8.0-alpha",
+  "signer": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "vectors": [
+    {
+      "name": "canonical",
+      "note": "ed25519DerivationMessage(signer): the exact bytes whose signature is the derivation seed",
+      "hex": "ff736f6c616e61206f6666636861696e001d32a88533af12d35e5ac6fce817a4cb810bcc4115386b14a78e8b2ef09d864c00010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f200e00545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": true
+    },
+    {
+      "name": "bare-v1",
+      "note": "The payload alone",
+      "hex": "545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "bare",
+      "sdkRefuses": true
+    },
+    {
+      "name": "bare-future-version",
+      "note": "A later derivation version",
+      "hex": "545350502f6465726976652f7632",
+      "refuse": true,
+      "form": "bare",
+      "sdkRefuses": true
+    },
+    {
+      "name": "offchain-other-domain",
+      "note": "Derivation payload under an all-zero application domain",
+      "hex": "ff736f6c616e61206f6666636861696e00000000000000000000000000000000000000000000000000000000000000000000010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f200e00545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": true
+    },
+    {
+      "name": "offchain-utf8-format",
+      "note": "Derivation payload with format 1 (UTF-8)",
+      "hex": "ff736f6c616e61206f6666636861696e001d32a88533af12d35e5ac6fce817a4cb810bcc4115386b14a78e8b2ef09d864c01010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f200e00545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": true
+    },
+    {
+      "name": "offchain-two-signers",
+      "note": "Derivation payload with a second signer",
+      "hex": "ff736f6c616e61206f6666636861696e001d32a88533af12d35e5ac6fce817a4cb810bcc4115386b14a78e8b2ef09d864c00020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf0e00545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": true
+    },
+    {
+      "name": "offchain-wrong-length",
+      "note": "Canonical message with a trailing byte, so the declared length is wrong",
+      "hex": "ff736f6c616e61206f6666636861696e001d32a88533af12d35e5ac6fce817a4cb810bcc4115386b14a78e8b2ef09d864c00010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f200e00545350502f6465726976652f763120",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": false
+    },
+    {
+      "name": "offchain-tspp-domain-other-payload",
+      "note": "TSPP application domain with an unrelated payload",
+      "hex": "ff736f6c616e61206f6666636861696e001d32a88533af12d35e5ac6fce817a4cb810bcc4115386b14a78e8b2ef09d864c00010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20050068656c6c6f",
+      "refuse": true,
+      "form": "tspp-domain",
+      "sdkRefuses": false
+    },
+    {
+      "name": "offchain-unknown-version",
+      "note": "An envelope with version 1 and no application domain",
+      "hex": "ff736f6c616e61206f6666636861696e01010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20545350502f6465726976652f7631",
+      "refuse": true,
+      "form": "offchain",
+      "sdkRefuses": false
+    },
+    {
+      "name": "plain-text",
+      "note": "An ordinary sign-in message",
+      "hex": "5369676e20696e20746f206578616d706c652e636f6d0a4e6f6e63653a2038663263",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "siws-mentioning-tspp",
+      "note": "A Sign-In With Solana message whose statement mentions the payload; its signature is no seed",
+      "hex": "6578616d706c652e636f6d2077616e747320796f7520746f207369676e20696e207769746820796f757220536f6c616e61206163636f756e743a0a545350502f6465726976652f7631",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "lowercase",
+      "note": "Case differs, so no SDK derives from it",
+      "hex": "747370702f6465726976652f7631",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "leading-space",
+      "note": "Does not start with the prefix",
+      "hex": "20545350502f6465726976652f7631",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "no-version-slash",
+      "note": "Shorter than the prefix",
+      "hex": "545350502f646572697665",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "empty",
+      "note": "Empty message",
+      "hex": "",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    },
+    {
+      "name": "offchain-unrelated",
+      "note": "An off-chain message with another domain and payload",
+      "hex": "ff736f6c616e61206f6666636861696e00000000000000000000000000000000000000000000000000000000000000000000010102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f201200417070726f7665206f726465722031303432",
+      "refuse": false,
+      "form": null,
+      "sdkRefuses": false
+    }
+  ]
+}
