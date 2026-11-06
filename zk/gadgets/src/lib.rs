@@ -7,6 +7,8 @@
 //!
 //! - [`timelock`]: the program's half of a timelock. No features, `no_std`
 //!   friendly, so an onchain program can use it.
+//! - [`threshold`] (feature `circuit`): M-of-N approvals against a committed
+//!   approver set.
 //! - [`harness`] (feature `harness`): the checks every gadget is tested with.
 //!
 #![forbid(unsafe_code)]
@@ -14,4 +16,6 @@
 
 #[cfg(feature = "harness")]
 pub mod harness;
+#[cfg(feature = "circuit")]
+pub mod threshold;
 pub mod timelock;

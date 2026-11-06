@@ -20,3 +20,7 @@ spr-program = { workspace = true }
 [[test]]
 name = "harness"
 required-features = ["harness"]
+
+[[test]]
+name = "threshold"
+required-features = ["harness"]
