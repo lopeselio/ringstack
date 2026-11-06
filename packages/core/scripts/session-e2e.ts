@@ -11,7 +11,7 @@ import { generateKeyPairSigner } from "@solana/kit";
 
 import { clientConfigFromEnv } from "../src/config.ts";
 import { fund } from "../src/fund.ts";
-import { decodeMemo, encodeMemo } from "../src/memo.ts";
+import { encodeMemo } from "../src/memo.ts";
 import { RingSession } from "../src/session.ts";
 
 function check(cond: boolean, msg: string): asserts cond {
@@ -52,11 +52,12 @@ check(afterMerge.amount === 50_000_000n && afterMerge.utxos.length === 1, "merge
 // Transfers to bob by Solana address.
 await alice.transfer(bob.owner, 10_000_000n);
 const ORDER = "order:session-e2e";
-await alice.transfer(bob.owner, 5_000_000n, { memo: encodeMemo(ORDER) });
+const withMemo = await alice.transfer(bob.owner, 5_000_000n, { memo: encodeMemo(ORDER) });
 await bob.sync();
 check(bob.balance() === 15_000_000n, `bob balance ${bob.balance()}`);
 check(alice.balance() === 35_000_000n, `alice balance ${alice.balance()}`);
-const memos = bob.wallet.balance(SOL_MINT).utxos.map((u) => decodeMemo(u.data.memo()));
+const memos = [...(await bob.receivedMemos(withMemo.signature)).values()];
+check(bob.wallet.balance(SOL_MINT).utxos.every((u) => u.data.isEmpty()), "memo payments should leave outputs plain");
 check(memos.includes(ORDER), `bob memos ${JSON.stringify(memos)}`);
 console.log(`transferred 10M + 5M (memo ${JSON.stringify(ORDER)})`);
 
@@ -68,8 +69,8 @@ check(publicLamports === 4_000_000n, `public balance ${publicLamports}`);
 check(bob.balance() === 11_000_000n, `bob balance after withdraw ${bob.balance()}`);
 console.log(`withdrew 4M to ${cashOut}`);
 
-// Bob's remaining 11M is 6M plain + 5M carrying a memo, which the SDK's default
-// selection skips; RingSession falls back to the lower-level builder.
+// Bob's remaining 11M includes the memo payment, which is a plain UTXO: the
+// SDK's default selection spends it.
 await bob.transfer(alice.owner, 11_000_000n);
 await alice.sync();
 check(bob.balance() === 0n, `bob balance after spending memo funds ${bob.balance()}`);
@@ -80,7 +81,7 @@ console.log("bob spent funds including a memo payment");
 await alice.transfer(bob.owner, 3_000_000n, { memo: encodeMemo("order:a") });
 await alice.transfer(bob.owner, 4_000_000n, { memo: encodeMemo("order:b") });
 await bob.sync();
-check(bob.wallet.balance(SOL_MINT).utxos.length === 2, "bob should hold 2 memo utxos");
+check(bob.wallet.balance(SOL_MINT).utxos.length === 2, "bob should hold 2 utxos from memo payments");
 await bob.setMerge(true);
 await bob.merge();
 const merged = bob.wallet.balance(SOL_MINT);

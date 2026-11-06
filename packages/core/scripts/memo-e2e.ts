@@ -11,7 +11,7 @@ import { SOL_MINT } from "@heliuslabs/zolana";
 import { atSlot } from "@heliuslabs/zolana/client";
 import { decryptToBalances } from "@heliuslabs/zolana/transaction";
 
-import { decodeMemo, encodeMemo } from "../src/memo.ts";
+import { decodeMemo, encodeMemo, receivedMemos } from "../src/memo.ts";
 import { networkFromEnv } from "../src/config.ts";
 import { decodeReceipt, encodeReceipt } from "../src/receipt.ts";
 import { fetchShieldedTransaction, issueReceipt, openReceipt } from "../src/receipt-open.ts";
@@ -22,7 +22,7 @@ const ORDER = "order:7f3a-2026-11-01";
 const { client, sender, recipient, assets, transferTx } = await depositAndTransfer({ memo: encodeMemo(ORDER) });
 const tx = await fetchShieldedTransaction(client, transferTx.signature);
 
-// Recipient side: the memo rides in their UTXO.
+// Recipient side: the memo rides in a message addressed to their output, which stays plain.
 const resp = await client.getShieldedTransactionsBySignature(transferTx.signature, atSlot(transferTx.slot));
 const balance = (
   await decryptToBalances({
@@ -33,7 +33,8 @@ const balance = (
 ).balance(SOL_MINT);
 const received = balance.utxos[0];
 if (received?.amount !== TRANSFER) throw new Error(`recipient: expected ${TRANSFER}, got ${received?.amount}`);
-const recipientMemo = decodeMemo(received.data.memo());
+if (!received.data.isEmpty()) throw new Error("recipient output should be plain (memo travels as a message)");
+const recipientMemo = [...receivedMemos(tx, recipient.shieldedAddress(), recipient.viewingKey()).values()][0];
 console.log(`recipient memo  ${JSON.stringify(recipientMemo)}`);
 if (recipientMemo !== ORDER) throw new Error("recipient did not read the memo");
 
@@ -49,8 +50,9 @@ if (paid?.commitment !== "verified" || decodeMemo(paid.memo) !== ORDER) throw ne
 const change = opened.outputs.find((o) => o !== paid);
 if (change?.commitment !== "verified" || change.memo !== undefined) throw new Error("change should carry no memo");
 
-// Known leak: the memo slot is longer than the change slot.
+// Output slots are all the same size; the memo is one fixed-width message.
 const lengths = tx.outputSlots.map((s) => s.payload.length);
-console.log(`slot payload lengths  ${lengths.join(", ")} (memo slot ${paid.slot})`);
+console.log(`slot payload lengths  ${lengths.join(", ")}; ${tx.messages.length} message of ${tx.messages[0]?.data.length} bytes`);
+if (new Set(lengths).size !== 1 || tx.messages.length !== 1) throw new Error("expected equal slots and one memo message");
 
 console.log(`ok: memo ${JSON.stringify(ORDER)} delivered to recipient and shown on receipt`);

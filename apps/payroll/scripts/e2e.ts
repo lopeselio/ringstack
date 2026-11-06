@@ -33,7 +33,7 @@ import {
   spendableUtxos,
   verifyPaymentProof,
 } from "@ringstack/core";
-import type { Address } from "@solana/kit";
+import type { Address, Signature } from "@solana/kit";
 
 import { AuditError, buildAudit, verifyAuditBundle, writeAuditBundle } from "../src/audit.ts";
 import { checkProof, listPayslips, provePayslip } from "../src/payslip.ts";
@@ -150,7 +150,10 @@ for (const p of payees) {
   await p.sync();
   check(p.balance() === (expected.get(p.owner) ?? 0n), `payee ${p.owner}: ${p.balance()} ≠ ${expected.get(p.owner)}`);
 }
-const memos = payees[0]!.wallet.balance(SOL_MINT).utxos.map((u) => decodeMemo(u.data.memo()));
+const memos: string[] = [];
+for (const b of Object.values(final.batches)) {
+  if (b.signature !== undefined) memos.push(...(await payees[0]!.receivedMemos(b.signature as Signature)).values());
+}
 check(memos.includes("Payroll 2026-11") && memos.includes("Bonus"), `payee 0 memos ${JSON.stringify(memos)}`);
 check(!existsSync(`${statePath}.tmp`), "state temp file left behind");
 console.log("every payee balance matches the plan; payee 0 got both memos");
@@ -184,7 +187,7 @@ console.log("forged amount caught against the chain");
 // Per-payee proof: payee 3 (paid in b001 with 14 others) proves only their own output.
 const employee = payees[3]!;
 const b001 = final.batches["b001"]!.signature!;
-const slip = listPayslips(employee).find((p) => p.signature === b001);
+const slip = (await listPayslips(employee)).find((p) => p.signature === b001);
 check(slip !== undefined && slip.memo === "Payroll 2026-11", `payslip ${JSON.stringify(slip)}`);
 const proofLink = await provePayslip(employee, b001 as never, cluster);
 const shown = await checkProof(client, proofLink);

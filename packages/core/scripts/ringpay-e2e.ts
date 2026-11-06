@@ -70,7 +70,7 @@ console.log(`receipt  verified ${toMerchant.amount}, order ${orderFromMemo(toMer
 
 // The merchant's wallet sees the payment with its order.
 await merchant.sync();
-const orders = merchant.wallet.balance(SOL_MINT).utxos.map((u) => orderFromMemo(u.data.memo()));
+const orders = [...(await merchant.receivedMemos(paid.payment.signature)).values()].map((m) => orderFromMemo(m));
 check(orders.includes("1042"), `merchant orders ${JSON.stringify(orders)}`);
 console.log(`merchant sees order 1042 (balance ${merchant.balance()})`);
 
