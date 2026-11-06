@@ -50,6 +50,7 @@ Paste either of the last two into the [verifier](https://lopeselio.github.io/rin
 - [**ringd**](tools/ringd/): A self-hosted daemon that watches a wallet with read-only keys and sends signed webhooks when payments arrive, memo included. It can also merge small payments without the spending key.
 - [**Private payroll**](tools/payroll/): A CLI that pays a CSV of people in batches of up to 15, resumes safely after a crash, and produces an audit bundle for the accountant.
 - [**Agent payments**](tools/paywall/): An HTTP 402 paywall and an MCP wallet that let AI agents pay APIs privately, within spend limits.
+- [**Leak analyzer**](tools/leakscan/): Scores how linkable the pool's public deposits and withdrawals are, warns before a withdrawal that would link back to you, and publishes a [daily aggregate report](https://lopeselio.github.io/ringstack/leaks/).
 - [**Derivation guard**](tools/derivation-guard/): Refuses a website's request for the wallet signature that unlocks your private payments, unless you confirm. A detector wallets can embed, plus a [browser extension](tools/derivation-guard-extension/).
 - [**Verifier page**](tools/verifier/): A static page that checks receipts and payment proofs in the browser, with no keys and no account.
 - [**Checkout demo**](tools/checkout-demo/): A Next.js shop and NestJS API that take a private payment, hear about it from ringd, and mark the order paid.

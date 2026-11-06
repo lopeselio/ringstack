@@ -21,6 +21,8 @@ description: The path of one private payment through ringstack, and the packages
 | `@ringstack/ringd-client` | Webhook event types, signing and `verifyWebhook`. |
 | `apps/ringd` | The watcher daemon and its CLI. |
 | `apps/payroll` | The payroll CLI: `plan`, `run`, `audit`, `prove`. |
+| `@ringstack/paywall`, `apps/agent-mcp` | The HTTP 402 paywall and the MCP agent wallet with spend limits. |
+| `@ringstack/leakscan`, `apps/leaks` | The leak analyzer CLI and the daily aggregate report page. |
 | `@ringstack/derivation-guard` | `isTsppDerivationRequest` for wallets, test vectors, and a page guard for Wallet Standard and injected providers. |
 | `apps/derivation-guard-extension` | The browser extension that runs the guard in every page. |
 | `apps/verifier` | The static verifier page (Vite). |
@@ -32,4 +34,4 @@ Amounts, assets and memos are encrypted onchain and bound to commitments that th
 
 ## Built on
 
-[Helius Privacy](https://www.helius.dev/privacy), the zolana shielded pool, through `@heliuslabs/zolana` 0.8. Two SDK limits shape the code: memo-carrying UTXOs need our own spend and merge paths ([zolana#543](https://github.com/helius-labs/zolana/issues/543)), and there is no 0.8 local stack yet, so integration tests run on devnet. Details are in the [SDK findings](../background/sdk-findings/).
+[Helius Privacy](https://www.helius.dev/privacy), the zolana shielded pool, through `@heliuslabs/zolana` 0.8. Memos travel as encrypted transaction messages ([zolana#543](https://github.com/helius-labs/zolana/issues/543)), so received payments spend through the SDK's own builders. There is no 0.8 local stack yet, so integration tests run on devnet. Details are in the [SDK findings](../background/sdk-findings/).
