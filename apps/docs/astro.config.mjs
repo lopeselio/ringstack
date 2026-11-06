@@ -32,6 +32,7 @@ export default defineConfig({
             "tools/leak-report",
             "tools/derivation-guard",
             "tools/derivation-guard-extension",
+            "tools/zk-gadgets",
           ],
         },
         {

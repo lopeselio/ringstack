@@ -30,6 +30,7 @@ const PAGES = [
   ["apps/leaks/README.md", "tools/leak-report", "Pool leak report", "The daily aggregate report, and how it's built."],
   ["packages/derivation-guard/README.md", "tools/derivation-guard", "Derivation guard", "Refuse phishing requests for the key-derivation signature."],
   ["apps/derivation-guard-extension/README.md", "tools/derivation-guard-extension", "Derivation guard extension", "A browser extension that asks before a site gets that signature."],
+  ["zk/gadgets/README.md", "tools/zk-gadgets", "zk-gadgets", "Building blocks and a test harness for SPP ZK programs."],
   ["apps/checkout-demo/README.md", "tools/checkout-demo", "Checkout demo", "Next.js shop, NestJS API and ringd, end to end."],
   ["docs/platform-notes.md", "background/platform-notes", "Platform notes", "What Helius Privacy provides and its constraints."],
   ["docs/spikes/m0-sdk-findings.md", "background/sdk-findings", "SDK findings", "What we learned building on the zolana SDK."],

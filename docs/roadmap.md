@@ -64,7 +64,7 @@ spec/
 Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8), which already covers UTXO hashing, conservation and range checks ([Z0 findings](spikes/z0-zk-dsl.md)).
 
 - [x] Z0: Build and run upstream `sdk-tests/timelock-escrow` on `spr-program` 0.8: circuit prove/verify, `cargo build-sbf`, verifier modules `--check`; baseline 14,880 / 5,638 constraints.
-- [ ] Z1: `zk/gadgets` crate and harness: constraint checks, constraint counts, negative tests that must fail by rule name.
+- [x] Z1: [`zk/gadgets`](../zk/gadgets) crate and harness: negative cases must fail by rule name *and* in R1CS, free-variable check, constraint counts; CI runs fmt, clippy and tests.
 - [ ] Z2: `terms`, `timelock`, `threshold`, `allowlist` with negative tests + constraint counts.
 - [ ] Z3: Template (program + circuits + verifier modules + client), with a devnet test.
 - [ ] Z4: Milestone escrow reference program, end to end on devnet.
