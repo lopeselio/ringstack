@@ -1,0 +1,22 @@
+[package]
+name = "ringstack-zk-gadgets"
+version = "0.1.0"
+description = "Building blocks for SPP ZK programs on spr-program: terms, timelock, threshold and allowlist."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+default = []
+# Gadgets used inside a `circuit` fn.
+circuit = ["spr-program/circuit"]
+# The checks every gadget is held to, for this crate's tests and for programs built on it.
+harness = ["circuit", "spr-program/test-support"]
+
+[dependencies]
+spr-program = { workspace = true }
+
+[[test]]
+name = "harness"
+required-features = ["harness"]

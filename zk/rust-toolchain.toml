@@ -1,0 +1,5 @@
+# Same toolchain as upstream zolana at rust-sdk-v0.8.0, which spr-program 0.8 is built with.
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"
