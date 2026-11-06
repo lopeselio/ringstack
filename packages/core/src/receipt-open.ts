@@ -20,6 +20,7 @@ import {
 import type { Address, Signature } from "@solana/kit";
 
 import type { Cluster, Receipt } from "./receipt.ts";
+import { readMemo } from "./memo.ts";
 
 const EMBEDDED_KEY_LENGTH = 33;
 
@@ -100,8 +101,9 @@ export interface ReceiptOutput {
   readonly mint?: Address;
   readonly amount: bigint;
   /**
-   * Raw memo bytes, if the output carries one (see memo.ts). Not covered by the
-   * commitment, but authentic: its ciphertext is bound by `external_data_hash`.
+   * Raw memo bytes, if the output has one: its memo message (see memo.ts), or
+   * a legacy memo inside the output. Not covered by the commitment, but
+   * authentic: its ciphertext is bound by `external_data_hash`.
    */
   readonly memo?: Uint8Array;
   readonly commitment: CommitmentCheck;
@@ -191,7 +193,9 @@ export function openReceipt(
         commitment = equalBytes(hash, slot.outputContext.hash) ? "verified" : "mismatch";
       }
 
-      const memo = plaintext.data.memo();
+      const memo =
+        readMemo(tx, position, (data, ordinal) => txKey.decryptSlotEphemeral(recipientViewingKey, data, salt, ordinal)) ??
+        plaintext.data.memo();
       outputs.push({
         slot: position,
         recipientViewingKey,

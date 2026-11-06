@@ -6,8 +6,9 @@
  * The proof discloses the X25519 shared secret between the payee's viewing key
  * and the transaction's ephemeral key. With it, a verifier decrypts exactly the
  * payee's slot and recomputes the payee's UTXO commitment from the decrypted
- * opening; a match proves the amount and asset and, because the whole slot is
- * one keystream, authenticates the memo too. Other slots are encrypted to other
+ * opening; a match proves the amount and asset. The same secret opens the
+ * memo message addressed to that output (see memo.ts), whose ciphertext the
+ * transaction's proof binds onchain. Other slots are encrypted to other
  * recipients' keys, and every transaction has a fresh ephemeral key, so the
  * secret opens nothing else.
  *
@@ -41,6 +42,7 @@ import {
 import { getAddressDecoder, getBase58Decoder, getBase58Encoder, type Address, type Signature } from "@solana/kit";
 
 import { fromBase64Url, toBase64Url } from "./base64url.ts";
+import { readMemo } from "./memo.ts";
 import type { Cluster } from "./receipt.ts";
 
 export const PAYMENT_PROOF_PREFIX = "ringproof1:";
@@ -89,7 +91,10 @@ export interface VerifiedPayment {
   readonly assetId: bigint;
   readonly mint: Address;
   readonly amount: bigint;
-  /** Raw memo bytes, if the output carries one. Authenticated by the commitment check. */
+  /**
+   * Raw memo bytes, if the output has one: its memo message, which the shared
+   * secret also opens, or a legacy memo inside the output.
+   */
   readonly memo?: Uint8Array;
 }
 
@@ -213,7 +218,10 @@ export function verifyPaymentProof(
   if (!eq(hash, found.slot.outputContext.hash)) {
     throw new PaymentProofError("COMMITMENT_MISMATCH", "the decrypted output does not match its onchain commitment");
   }
-  const memo = plaintext.data.memo();
+  const memo =
+    readMemo(tx, proof.outputSlot, (data, ordinal) =>
+      applySlotCipher(proof.sharedSecret, ephemeral, found.recipientKey, data, salt, ordinal),
+    ) ?? plaintext.data.memo();
   return {
     signature: tx.txSignature,
     slot: tx.slot,
