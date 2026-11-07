@@ -12,6 +12,10 @@ set -uo pipefail
 image="${PICUS_IMAGE:-picus:v0}"
 args=("$@")
 last=$((${#args[@]} - 1))
+if ((last < 0)) || [[ "${args[last]}" == /* || ! -f "${args[last]}" ]]; then
+  echo "usage: picus-docker.sh [run-picus options] <relative path to .r1cs>" >&2
+  exit 2
+fi
 args[last]="/work/${args[last]}"
 name="picus-$$"
 
