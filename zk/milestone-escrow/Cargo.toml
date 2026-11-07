@@ -69,6 +69,7 @@ check-cfg = [
 ]
 
 [dev-dependencies]
+proptest = "=1.11.0"
 solana-signature = "3.4"
 
 [[test]]
