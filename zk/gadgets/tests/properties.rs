@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use proptest::prelude::*;
 use ringstack_zk_gadgets::{
     allowlist::{Allowlist, assert_allowed},
-    harness::r1cs_accepts,
+    harness::agreement,
     threshold::assert_threshold,
     timelock::{is_before, is_unlocked},
 };
@@ -33,13 +33,10 @@ fn id(n: u8) -> [u8; 32] {
     bytes
 }
 
-/// Both the native run and the R1CS must reach `expected`.
+/// Both the native run and the R1CS must reach `expected`; a rejection must
+/// leave the R1CS generated and unsatisfied.
 fn agrees<P: ZkCircuit>(inputs: &P, expected: bool) -> Result<(), TestCaseError> {
-    let native = inputs.check_constraints().is_ok();
-    let r1cs = r1cs_accepts(inputs);
-    prop_assert_eq!(native, expected, "native run disagrees with the model");
-    prop_assert_eq!(r1cs, expected, "R1CS disagrees with the model");
-    Ok(())
+    agreement(inputs, expected).map_err(TestCaseError::fail)
 }
 
 #[derive(Clone, Copy, Debug, ProofInput)]
@@ -138,9 +135,19 @@ proptest! {
         agrees(&inputs, ok)?;
     }
 
+    /// Clocks within a few seconds of the deadline, where an off-by-one lives,
+    /// checked against wide-integer arithmetic rather than the code's own form.
+    /// The timelock has no circuit: this tests the program-side functions.
     #[test]
-    fn timelock_splits_every_clock_at_the_deadline(now in any::<i64>(), deadline in 0u64..u64::MAX) {
-        prop_assert_ne!(is_unlocked(now, deadline), is_before(now, deadline + 1));
-        prop_assert_eq!(is_unlocked(now, deadline), now >= 0 && now as u64 > deadline);
+    fn timelock_splits_every_clock_at_the_deadline(
+        deadline in prop_oneof![0u64..10, 1_700_000_000u64..1_800_000_000, (i64::MAX as u64 - 10)..u64::MAX],
+        delta in -3i64..=3,
+    ) {
+        let now = i64::try_from(i128::from(deadline) + i128::from(delta)).unwrap_or(if delta < 0 { i64::MIN } else { i64::MAX });
+        let after = i128::from(now) > i128::from(deadline);
+        prop_assert_eq!(is_unlocked(now, deadline), after);
+        if deadline < u64::MAX {
+            prop_assert_ne!(is_unlocked(now, deadline), is_before(now, deadline + 1));
+        }
     }
 }
