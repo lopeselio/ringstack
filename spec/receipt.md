@@ -16,7 +16,7 @@ txKey = senderViewingKey.transactionViewingKey(firstNullifier)
 
 `txKey` decrypts **only that transaction's slots**. It reveals nothing about the sender's viewing key, other transactions, or balances.
 
-SDK (`@heliuslabs/zolana` 0.6.0-alpha):
+SDK (`@heliuslabs/spr` 0.9.0-alpha; the same API since `@heliuslabs/zolana` 0.6.0-alpha):
 - `ViewingKey.transactionViewingKey(firstNullifier)` / `withTransactionKey(keys, firstNullifier, fn)`
 - `ViewingKey.secretBytes()` → 32 bytes, `ViewingKey.fromBytes(bytes)`
 - `ViewingKey.decryptSlotEphemeral(recipientViewingPk, ciphertext, salt, slotIndex)`

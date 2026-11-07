@@ -83,8 +83,8 @@ The program verifies its own proof, then CPIs `transact` into the pool, which ve
 
 ## SDKs & versions
 
-- TS: `@heliuslabs/zolana` (+ `@solana/kit`). Rust: `zolana-client`, `zolana-interface`, `zolana-program`, `zolana-keypair`, `zolana-transaction`.
-- **Version drift:** docs reference `v0.5.0-alpha` and SPP `sppU489D7A4U1exNo1oeMGZtLEofq3a6o2fR7UeoWB6`. The shielded-pool program is now **`ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`**. Devnet runs **v0.8.0** (finalized ceremony keys, per-tree fees) and only accepts 0.8 clients. **Pin `@heliuslabs/zolana@0.8.0-alpha`** (upgraded from 0.6.0-alpha on 2026-11-05; see [devnet.md](devnet.md)).
+- TS: `@heliuslabs/spr` (+ `@solana/kit`); `@heliuslabs/zolana` up to 0.8. Rust: the `spr-*` crates (`spr-program`, `spr-client`, `spr-keypair`, `spr-transaction`, …).
+- **Version drift:** docs reference `v0.5.0-alpha` and SPP `sppU489D7A4U1exNo1oeMGZtLEofq3a6o2fR7UeoWB6`. The shielded-pool program is now **`ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`**. Devnet runs **v0.8.0** (finalized ceremony keys, per-tree fees) and its indexer serves the 0.9 API (`Page` responses with `paginationToken`) since 2026-11-06, which 0.8.0-alpha clients cannot read. **Pin `@heliuslabs/spr@0.9.0-alpha`** (0.6 → 0.8 on 2026-11-05, 0.8 → 0.9 on 2026-11-06; see [devnet.md](devnet.md)).
 - User Registry: the v0.6.0-alpha SDK uses **`regy3WAeRXMYuMYxr5iK3Bf9Arr3PcxGxyzAddbiqDQ`**. The docs list `regyS5rkAcw2YzDJCmTwCTHs2s246FXxbmuRZ42u2PD`, an older deployment; both are deployed on devnet (checked 2026-11-05), and the SDK only talks to `regy3W…`.
 
 ## Upstream work in flight (avoid duplicating)

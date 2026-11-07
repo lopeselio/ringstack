@@ -87,3 +87,7 @@ Date: 2026-10-31 · Sources: `helius-labs/zolana@v0.6.0-alpha` (8ae430a), `@heli
 ## Other useful SDK surface found
 
 `isWalletRegistered`, `resolveShieldedRecipient`, `buildRegistrationTransaction`, `buildSetMergeEncryptionTransaction`, `createMerge` / `buildMergeTransaction`, `syncWallet` / `syncPersistedWallet` / `beginSyncSession` (ringd), `getPrivateTokenBalances`, `getPrivateTransactions`, `walletSnapshotCipher` (encrypted local persistence).
+
+## Update: SDK 0.9 (2026-11-06)
+
+The TypeScript SDK is published as `@heliuslabs/spr` from 0.9.0-alpha, with `Spr` names for the client (`createSprClient`, `SprClient`, `SprClientConfig`), program APIs under the experimental `@heliuslabs/spr/program` subpath, and paginated tag and nullifier queries (`paginationToken` until `null`). Devnet's indexer switched to the 0.9 API the same week, so 0.8 clients stopped syncing; see [devnet.md](../devnet.md#sdk-09-cutover-2026-11-06). Everything above that names `@heliuslabs/zolana` describes the SDK of its date.

@@ -34,4 +34,4 @@ Amounts, assets and memos are encrypted onchain and bound to commitments that th
 
 ## Built on
 
-[Helius Privacy](https://www.helius.dev/privacy), the zolana shielded pool, through `@heliuslabs/zolana` 0.8. Memos travel as encrypted transaction messages ([zolana#543](https://github.com/helius-labs/zolana/issues/543)), so received payments spend through the SDK's own builders. There is no 0.8 local stack yet, so integration tests run on devnet. Details are in the [SDK findings](../background/sdk-findings/).
+[Helius Privacy](https://www.helius.dev/privacy), the zolana shielded pool, through the TypeScript SDK `@heliuslabs/spr` 0.9 (published as `@heliuslabs/zolana` before 0.9). Memos travel as encrypted transaction messages ([zolana#543](https://github.com/helius-labs/zolana/issues/543)), so received payments spend through the SDK's own builders. There is no 0.8 local stack yet, so integration tests run on devnet. Details are in the [SDK findings](../background/sdk-findings/).
