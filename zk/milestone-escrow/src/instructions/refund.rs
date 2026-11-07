@@ -13,8 +13,8 @@ use crate::{
     verifier::refund,
 };
 
+/// Refund closes the escrow, so its only output is the funder's payout.
 pub mod slot {
-    pub const ESCROW: usize = 0;
     pub const PAYOUT: usize = 0;
 }
 
