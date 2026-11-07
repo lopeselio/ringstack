@@ -17,7 +17,8 @@ on:
         default: false
       limit_s:
         description: Seconds per circuit before it is reported unknown
-        default: "300"
+        type: number
+        default: 300
 
 jobs:
   picus:
@@ -38,6 +39,8 @@ jobs:
         with:
           workspaces: zk
       - name: Run Picus
+        # `shell: bash` adds pipefail, so the status below is picus.sh's.
+        shell: bash
         env:
           PICUS: ${{ github.workspace }}/zk/scripts/picus-docker.sh
           PICUS_SOLVER: cvc5
@@ -47,7 +50,7 @@ jobs:
           status=0
           zk/scripts/picus.sh $ALL | tee verdicts.txt || status=$?
           {
-            echo "### Picus (cvc5, Veridise/Picus@138b151, ${PICUS_LIMIT_S:-300}s per circuit)"
+            echo "### Picus (Veridise/Picus@138b151)"
             echo
             echo '```'
             cat verdicts.txt
