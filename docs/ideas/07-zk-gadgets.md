@@ -1,6 +1,6 @@
 # 7. zk-gadgets: building blocks + template for SPP ZK programs
 
-**Status:** Selected (hard pick), in progress: [Z0](../spikes/z0-zk-dsl.md), Z1–Z2 ([gadgets](../../zk/gadgets)), Z3 ([template](../../zk/template), on devnet) done · **Type:** ZK program infrastructure (Rust: `spr-program` DSL + Pinocchio)
+**Status:** Selected (hard pick), in progress: [Z0](../spikes/z0-zk-dsl.md), Z1–Z2 ([gadgets](../../zk/gadgets)), Z3 ([template](../../zk/template)) and Z4 ([milestone escrow](../../zk/milestone-escrow)) done, both on devnet · **Type:** ZK program infrastructure (Rust: `spr-program` DSL + Pinocchio)
 
 ## Problem
 
