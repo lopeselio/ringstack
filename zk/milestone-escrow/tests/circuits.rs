@@ -22,7 +22,7 @@ use spr_hasher::primitives::solana_owner_identity;
 use spr_keypair::{ShieldedAddress, ShieldedKeypair};
 use spr_program::{
     verifier::VerifyError, CompressedProof, Groth16Keys, Groth16Prover, SolanaProof, TxContext,
-    ZkProgramCircuit,
+    ZkCircuit, ZkProgramCircuit,
 };
 use spr_transaction::WalletUtxo;
 
@@ -446,7 +446,56 @@ fn no_instruction_leaves_a_private_variable_free() {
     let (rest, rest_terms) = w.escrow_from(&first, release_slot::ESCROW);
     assert_no_free_variables(&w.release(rest, rest_terms, w.two_signers()));
     assert_no_free_variables(&Refund {
-        private: RefundPrivateInputs { tx_context: TxContext::new(), escrow, terms },
-        public: RefundPublicInputs { deadline: DEADLINE, funder_identity: w.funder.identity },
+        private: RefundPrivateInputs {
+            tx_context: TxContext::new(),
+            escrow,
+            terms,
+        },
+        public: RefundPublicInputs {
+            deadline: DEADLINE,
+            funder_identity: w.funder.identity,
+        },
     });
+}
+
+/// Who fills a signer slot in a random release: nobody, one of the three
+/// approvers, or the payee, who is not an approver.
+fn slot_identity(w: &World, who: u8) -> [u8; 32] {
+    match who {
+        0 => NONE,
+        1..=3 => w.approvers[usize::from(who) - 1].identity,
+        _ => w.payee.identity,
+    }
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(32))]
+
+    /// Release accepts exactly when a plain-Rust model says M distinct
+    /// approvers signed and nobody else did, both natively and in R1CS.
+    #[test]
+    fn release_accepts_exactly_what_the_approval_model_accepts(
+        threshold in 1u16..=3,
+        slots in proptest::array::uniform3(0u8..5),
+    ) {
+        let w = world();
+        let spp = w
+            .create(AMOUNT, TRANCHE, threshold, w.approver_ids())
+            .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
+            .expect("create");
+        let (escrow, terms) = w.escrow_from(&spp, create_slot::ESCROW);
+        let present: Vec<u8> = slots.iter().copied().filter(|&s| s != 0).collect();
+        let distinct: std::collections::HashSet<u8> = present.iter().copied().collect();
+        let ok = present.iter().all(|&s| s <= 3)
+            && distinct.len() == present.len()
+            && present.len() >= usize::from(threshold);
+        let inputs = w.release(escrow, terms, slots.map(|s| slot_identity(&w, s)));
+        proptest::prop_assert_eq!(inputs.check_constraints().is_ok(), ok, "native, slots {:?}", slots);
+        proptest::prop_assert_eq!(
+            ringstack_zk_gadgets::harness::r1cs_accepts(&inputs),
+            ok,
+            "R1CS, slots {:?}",
+            slots
+        );
+    }
 }
