@@ -1,0 +1,64 @@
+name: picus
+
+# Runs Picus (https://github.com/Veridise/Picus) with cvc5's finite-field
+# solver on the exported circuits, on demand. Picus publishes its image for
+# x86 only, so it runs here rather than on Apple Silicon. It also runs on
+# pull requests that change the Picus tooling.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/picus.yml
+      - zk/scripts/picus*.sh
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Also check the escrow circuits (expect each to hit the time limit)
+        type: boolean
+        default: false
+      limit_s:
+        description: Seconds per circuit before it is reported unknown
+        default: "300"
+
+jobs:
+  picus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Veridise/Picus
+          # Pinned so a verdict names the Picus it came from.
+          ref: 138b151d3a388e5b6c040c163e0a1db04f2ceda6
+          path: picus-src
+      - run: docker build -t picus:v0 picus-src
+      - run: rustup show active-toolchain || rustup toolchain install
+        working-directory: zk
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zk
+      - name: Run Picus
+        env:
+          PICUS: ${{ github.workspace }}/zk/scripts/picus-docker.sh
+          PICUS_SOLVER: cvc5
+          PICUS_LIMIT_S: ${{ inputs.limit_s }}
+          ALL: ${{ inputs.all && '--all' || '' }}
+        run: |
+          status=0
+          zk/scripts/picus.sh $ALL | tee verdicts.txt || status=$?
+          {
+            echo "### Picus (cvc5, Veridise/Picus@138b151, ${PICUS_LIMIT_S:-300}s per circuit)"
+            echo
+            echo '```'
+            cat verdicts.txt
+            echo '```'
+            echo "Logs are in the picus artifact."
+          } >>"$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: picus
+          path: |
+            zk/target/picus/*.log
+            zk/target/picus/*.r1cs
