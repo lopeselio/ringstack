@@ -1,4 +1,7 @@
-use pinocchio::{AccountView, ProgramResult};
+use pinocchio::{
+    sysvars::{clock::Clock, Sysvar},
+    AccountView, ProgramResult,
+};
 use spr_account_checks::AccountIterator;
 use spr_hasher::primitives::solana_owner_identity;
 use spr_program::CompressedProof;
@@ -6,7 +9,7 @@ use wincode::{SchemaRead, SchemaWrite};
 
 use crate::{
     error::EscrowError,
-    instructions::shared::{EscrowAuthority, IxData},
+    instructions::shared::{check_not_expired, EscrowAuthority, IxData},
     verifier::create,
 };
 
@@ -18,8 +21,10 @@ pub mod slot {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, SchemaRead, SchemaWrite)]
 pub struct CreateArgs {
     pub proof: CompressedProof,
-    /// The viewing key the escrow UTXO is encrypted to (the funder's).
+    /// The viewing key the escrow UTXO is encrypted to: the escrow's own,
+    /// shared by the funder with the payee.
     pub viewing_pubkey: [u8; 33],
+    pub deadline: u64,
 }
 
 /// Accounts: funder (signer), then the pool's transact accounts.
@@ -31,13 +36,18 @@ pub fn process_create_ix(accounts: &mut [AccountView], data: &[u8]) -> ProgramRe
     let authority = EscrowAuthority::find(&funder);
 
     let IxData {
-        args: CreateArgs {
-            proof,
-            viewing_pubkey,
-        },
+        args:
+            CreateArgs {
+                proof,
+                viewing_pubkey,
+                deadline,
+            },
         private_tx_hash,
         transact,
     } = IxData::<CreateArgs>::parse(data)?;
+
+    // An escrow nobody could release from would only be a delayed refund.
+    check_not_expired(Clock::get()?.unix_timestamp, deadline)?;
 
     create::Verifier {
         proof: &proof,
@@ -48,6 +58,7 @@ pub fn process_create_ix(accounts: &mut [AccountView], data: &[u8]) -> ProgramRe
             )
             .map_err(EscrowError::from)?,
             funder_identity,
+            deadline,
         },
         private_tx_hash,
         transfers: &[],

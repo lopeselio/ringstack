@@ -113,13 +113,13 @@ impl World {
                 approvers,
                 threshold,
                 tranche,
-                deadline: DEADLINE,
             },
             public: CreatePublicInputs {
                 escrow_owner: authority
                     .address(self.funder.keypair.viewing_pubkey())
                     .expect("owner"),
                 funder_identity: self.funder.identity,
+                deadline: DEADLINE,
             },
         }
     }
@@ -194,7 +194,7 @@ impl World {
 #[test]
 fn create_accepts_valid_terms_and_refuses_each_bad_one() {
     let w = world();
-    assert_eq!(assert_accepts(&w.valid_create()), 16_243);
+    assert_eq!(assert_accepts(&w.valid_create()), 16_279);
     let ids = w.approver_ids();
     assert_refuses(&w.create(0, TRANCHE, 2, ids), create_rule::NOTHING_ESCROWED);
     assert_refuses(&w.create(AMOUNT, 0, 2, ids), create_rule::ZERO_TRANCHE);
@@ -243,6 +243,7 @@ fn create_proves_and_the_program_verifier_accepts_it() {
                 .address_hash()
                 .expect("owner hash"),
             funder_identity: w.funder.identity,
+            deadline: DEADLINE,
         },
         private_tx_hash: &hash,
         transfers: &[],
@@ -266,7 +267,7 @@ fn release_pays_a_tranche_and_keeps_the_rest_under_the_same_terms() {
     let w = world();
     let (escrow, terms, _) = w.created_escrow();
     let inputs = w.release(escrow, terms.clone(), w.two_signers());
-    assert_eq!(assert_accepts(&inputs), 11_745);
+    assert_eq!(assert_accepts(&inputs), 11_813);
 
     let spp = inputs
         .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
@@ -348,22 +349,33 @@ fn release_refuses_each_broken_rule() {
 }
 
 #[test]
-fn a_release_cannot_pay_more_than_is_left() {
+fn the_last_release_pays_what_is_left_and_an_empty_escrow_is_refused() {
     let w = world();
+    // 700 at 300 a tranche: 300, 300, then the last 100.
     let spp = w
-        .create(TRANCHE, TRANCHE, 2, w.approver_ids())
+        .create(700, TRANCHE, 2, w.approver_ids())
         .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
         .expect("create");
-    let (escrow, terms) = w.escrow_from(&spp, create_slot::ESCROW);
-    let first = w.release(escrow, terms, w.two_signers());
-    let spp = first
-        .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
-        .expect("first release");
-    let (empty, terms) = w.escrow_from(&spp, release_slot::ESCROW);
-    assert_eq!(empty.utxo.amount, 0);
-    let second = w.release(empty, terms, w.two_signers());
-    // The DSL's own transfer rule refuses it, natively and in R1CS.
-    assert_refuses(&second, "the transfer exceeds the balance");
+    let (mut escrow, mut terms) = w.escrow_from(&spp, create_slot::ESCROW);
+    for (paid, left) in [(300, 400), (300, 100), (100, 0)] {
+        let release = w.release(escrow, terms, w.two_signers());
+        let spp = release
+            .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
+            .expect("release");
+        assert_eq!(
+            spp.output_utxos
+                .get(release_slot::PAYOUT)
+                .expect("payout")
+                .amount,
+            paid
+        );
+        (escrow, terms) = w.escrow_from(&spp, release_slot::ESCROW);
+        assert_eq!(escrow.utxo.amount, left);
+    }
+    assert_refuses(
+        &w.release(escrow, terms, w.two_signers()),
+        release_rule::EMPTY_ESCROW,
+    );
 }
 
 #[test]
