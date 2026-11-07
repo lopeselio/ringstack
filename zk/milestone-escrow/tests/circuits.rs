@@ -15,7 +15,7 @@ use milestone_escrow::{
     APPROVERS,
 };
 use ringstack_zk_gadgets::{
-    harness::{assert_accepts, assert_refuses},
+    harness::{assert_accepts, assert_no_free_variables, assert_refuses},
     threshold::{BELOW_THRESHOLD, DUPLICATE_SIGNER, SIGNER_NOT_APPROVER},
 };
 use spr_hasher::primitives::solana_owner_identity;
@@ -420,4 +420,33 @@ fn refund_returns_the_rest_to_the_funder_only() {
     }
     .verify()
     .expect("refund verifies");
+}
+
+/// No private variable is left free in any instruction, across witness
+/// shapes: two and three signers, a partial last tranche, a refund. What the
+/// check tolerates is the UTXO metadata the pool's own proof validates and the
+/// inverse hints of equality tests, which are free by design.
+#[test]
+fn no_instruction_leaves_a_private_variable_free() {
+    let w = world();
+    assert_no_free_variables(&w.valid_create());
+    assert_no_free_variables(&w.create(700, TRANCHE, 3, w.approver_ids()));
+    let (escrow, terms, _) = w.created_escrow();
+    assert_no_free_variables(&w.release(escrow.clone(), terms.clone(), w.two_signers()));
+    assert_no_free_variables(&w.release(escrow.clone(), terms.clone(), w.approver_ids()));
+    let partial = w
+        .create(400, TRANCHE, 2, w.approver_ids())
+        .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
+        .expect("create");
+    let (small, small_terms) = w.escrow_from(&partial, create_slot::ESCROW);
+    let first = w
+        .release(small, small_terms, w.two_signers())
+        .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
+        .expect("first release");
+    let (rest, rest_terms) = w.escrow_from(&first, release_slot::ESCROW);
+    assert_no_free_variables(&w.release(rest, rest_terms, w.two_signers()));
+    assert_no_free_variables(&Refund {
+        private: RefundPrivateInputs { tx_context: TxContext::new(), escrow, terms },
+        public: RefundPublicInputs { deadline: DEADLINE, funder_identity: w.funder.identity },
+    });
 }
