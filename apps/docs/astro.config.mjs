@@ -34,6 +34,7 @@ export default defineConfig({
             "tools/derivation-guard-extension",
             "tools/zk-gadgets",
             "tools/zk-template",
+            "tools/milestone-escrow",
           ],
         },
         {

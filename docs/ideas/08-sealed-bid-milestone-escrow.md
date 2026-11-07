@@ -1,6 +1,6 @@
 # 8. Sealed-bid auctions & milestone escrow
 
-**Status:** Backlog (partially covered by [zk-gadgets](07-zk-gadgets.md) reference programs) · **Type:** ZK program
+**Status:** Milestone escrow built ([zk/milestone-escrow](../../zk/milestone-escrow), on devnet); sealed-bid auctions in backlog · **Type:** ZK program
 
 ## Ideas
 - **Sealed-bid auction:** bids are private UTXOs owned by an auction PDA, with the bid amount committed in `program_data`. At close, a proof selects the max bid; the winner's UTXO goes to the seller and losers reclaim theirs. Only the winning price (optionally) becomes public.

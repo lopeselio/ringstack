@@ -16,7 +16,7 @@ Open-source tooling built on [Helius Privacy](https://www.helius.dev/privacy) (S
 | 3 | [Agent payments](packages/paywall) | HTTP 402 paywall + [MCP agent wallet](apps/agent-mcp) with spend limits ([live demo API](https://ringstack-paywall-demo.azurewebsites.net)) | Built, devnet |
 | 5 | [Leak analyzer](packages/leakscan) | Linkability scoring, withdrawal advisor, [daily public report](https://lopeselio.github.io/ringstack/leaks/) | Built, devnet |
 | 6 | [Derivation guard](packages/derivation-guard) | Refuses phishing requests for the key-derivation signature: detector for wallets, test vectors, [browser extension](apps/derivation-guard-extension) | Built |
-| 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Building blocks + template for SPP ZK programs on upstream's Rust DSL | In progress ([Z0](docs/spikes/z0-zk-dsl.md), [Z1–Z2: harness and gadgets](zk/gadgets), [Z3: template](zk/template) done) |
+| 7 | [zk-gadgets](docs/ideas/07-zk-gadgets.md) | Building blocks + template for SPP ZK programs on upstream's Rust DSL | In progress ([Z0](docs/spikes/z0-zk-dsl.md), [Z1–Z2: harness and gadgets](zk/gadgets), [Z3: template](zk/template), [Z4: milestone escrow](zk/milestone-escrow) done) |
 
 Build order and milestones: [docs/roadmap.md](docs/roadmap.md).
 
