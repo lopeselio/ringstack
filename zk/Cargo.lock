@@ -1318,6 +1318,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "milestone-escrow"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "getrandom 0.4.3",
+ "pinocchio 0.11.2",
+ "ringstack-zk-gadgets",
+ "solana-instruction",
+ "solana-program-error",
+ "solana-signature",
+ "spr-account-checks",
+ "spr-hasher",
+ "spr-interface",
+ "spr-keypair",
+ "spr-program",
+ "spr-transaction",
+ "thiserror 2.0.21",
+ "wincode 0.5.5",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
