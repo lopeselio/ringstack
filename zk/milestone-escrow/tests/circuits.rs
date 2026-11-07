@@ -22,7 +22,7 @@ use spr_hasher::primitives::solana_owner_identity;
 use spr_keypair::{ShieldedAddress, ShieldedKeypair};
 use spr_program::{
     verifier::VerifyError, CompressedProof, Groth16Keys, Groth16Prover, SolanaProof, TxContext,
-    ZkCircuit, ZkProgramCircuit,
+    ZkProgramCircuit,
 };
 use spr_transaction::WalletUtxo;
 
@@ -468,34 +468,48 @@ fn slot_identity(w: &World, who: u8) -> [u8; 32] {
     }
 }
 
-proptest::proptest! {
-    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(32))]
+/// Release accepts exactly when a plain-Rust model says M distinct approvers
+/// signed and nobody else did, natively and in R1CS, with every rejection
+/// leaving the R1CS generated and unsatisfied. The world and one escrow per
+/// threshold are built once; the runner draws the cases.
+#[test]
+fn release_accepts_exactly_what_the_approval_model_accepts() {
+    use proptest::{
+        prelude::*,
+        test_runner::{Config, TestRunner},
+    };
 
-    /// Release accepts exactly when a plain-Rust model says M distinct
-    /// approvers signed and nobody else did, both natively and in R1CS.
-    #[test]
-    fn release_accepts_exactly_what_the_approval_model_accepts(
-        threshold in 1u16..=3,
-        slots in proptest::array::uniform3(0u8..5),
-    ) {
-        let w = world();
-        let spp = w
-            .create(AMOUNT, TRANCHE, threshold, w.approver_ids())
-            .create_proof_inputs_and_encrypt_with_keys(&w.funder.keypair, w.funder.payer, u64::MAX)
-            .expect("create");
-        let (escrow, terms) = w.escrow_from(&spp, create_slot::ESCROW);
-        let present: Vec<u8> = slots.iter().copied().filter(|&s| s != 0).collect();
-        let distinct: std::collections::HashSet<u8> = present.iter().copied().collect();
-        let ok = present.iter().all(|&s| s <= 3)
-            && distinct.len() == present.len()
-            && present.len() >= usize::from(threshold);
-        let inputs = w.release(escrow, terms, slots.map(|s| slot_identity(&w, s)));
-        proptest::prop_assert_eq!(inputs.check_constraints().is_ok(), ok, "native, slots {:?}", slots);
-        proptest::prop_assert_eq!(
-            ringstack_zk_gadgets::harness::r1cs_accepts(&inputs),
-            ok,
-            "R1CS, slots {:?}",
-            slots
-        );
-    }
+    let w = world();
+    let escrows: Vec<(WalletUtxo, EscrowTerms)> = (1u16..=3)
+        .map(|threshold| {
+            let spp = w
+                .create(AMOUNT, TRANCHE, threshold, w.approver_ids())
+                .create_proof_inputs_and_encrypt_with_keys(
+                    &w.funder.keypair,
+                    w.funder.payer,
+                    u64::MAX,
+                )
+                .expect("create");
+            w.escrow_from(&spp, create_slot::ESCROW)
+        })
+        .collect();
+
+    let mut runner = TestRunner::new(Config::with_cases(32));
+    runner
+        .run(
+            &(1u16..=3, proptest::array::uniform3(0u8..5)),
+            |(threshold, slots)| {
+                let present: Vec<u8> = slots.iter().copied().filter(|&s| s != 0).collect();
+                let distinct: std::collections::HashSet<u8> = present.iter().copied().collect();
+                let ok = present.iter().all(|&s| s <= 3)
+                    && distinct.len() == present.len()
+                    && present.len() >= usize::from(threshold);
+                let (escrow, terms) = escrows[usize::from(threshold) - 1].clone();
+                let inputs = w.release(escrow, terms, slots.map(|s| slot_identity(&w, s)));
+                ringstack_zk_gadgets::harness::agreement(&inputs, ok).map_err(|e| {
+                    TestCaseError::fail(format!("{e}; threshold {threshold}, slots {slots:?}"))
+                })
+            },
+        )
+        .expect("release agrees with the approval model");
 }
