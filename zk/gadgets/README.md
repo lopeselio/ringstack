@@ -57,6 +57,12 @@ One blind spot: declaring a typed input (`u64`, `bool`, ...) range-checks it, an
 
 The harness is behind the `harness` feature, so programs built on these gadgets can hold their own circuits to the same bar. `tests/harness.rs` proves the harness itself: it passes a sound integer square root and catches a missing bound, a native-only check, a negative case that breaks a different rule, and an unused input.
 
+## Property tests and Picus
+
+`tests/properties.rs` runs each gadget on random inputs against a plain-Rust model of what it should accept: random approver sets, thresholds and signer slots for `threshold`, random member lists and claimed index/identity pairs (including indices past the tree) for `allowlist`, random clocks for `timelock`. A case passes only if the native run *and* the R1CS alone agree with the model. Mutation runs show they catch real bugs: dropping the duplicate-signer check fails on `[2, 2, 2]`, and dropping the allowlist's index range check fails on index 23 in a 16-leaf tree. Both counterexamples are kept in `properties.proptest-regressions`, so they run first every time.
+
+For a formal check, `examples/picus_export.rs` writes each gadget in [Picus](https://github.com/Veridise/Picus)'s R1CS format (upstream's `export_picus_r1cs`: proof inputs are Picus inputs, every other wire must be uniquely determined, equality hints are unchecked), and [`zk/scripts/picus.sh`](../scripts/picus.sh) runs Picus on them and on the escrow's circuits. Picus has not been run on them yet; see the [review request](../../docs/security/zk-review-request.md).
+
 ## Build and test
 
 The workspace in [`zk/`](..) pins the same Rust toolchain as upstream (1.98.1); rustup installs it on first use. No Go and no local validator are needed.

@@ -44,7 +44,7 @@ export default defineConfig({
         {
           label: "Background",
           collapsed: true,
-          items: ["background/platform-notes", "background/sdk-findings", "background/zk-dsl", "background/roadmap"],
+          items: ["background/platform-notes", "background/sdk-findings", "background/zk-dsl", "background/zk-review-request", "background/roadmap"],
         },
       ],
     }),

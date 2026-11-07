@@ -68,7 +68,11 @@ Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8)
 - [x] Z2: `threshold` (77 constraints), `allowlist` (1,220 for 16 members), `timelock` (program side) with negative tests and pinned counts. `terms` became a tested pattern, since binding a term is one `assert_equal`. The free-variable check found that `threshold` alone leaves unused approver slots free; its contract requires binding the set.
 - [x] Z3: [Template](../zk/template) (program + circuits + verifier modules + keys + TS client) that builds outside upstream's workspace; devnet e2e passes against program `3bzWnoteJaH7kD6Jron7Lb1ABfQxLGSqcEzRr3Zy6cAi` (lock with a program proof, onchain timelock refusal, release).
 - [x] Z4: [Milestone escrow](../zk/milestone-escrow): 2-of-3 releases per tranche, refund after a deadline; devnet e2e passes against `2XdkS7kQQcuCXQBhQv634B8PhDqFbpTPecHqMavwtMBR`, including onchain refusals for unsigned approvers, an already-expired escrow, an early refund and a late release; the payee can build releases with the escrow's shared viewing key.
-- [ ] Z5: Property tests, Picus under-constraint check; request external review.
+- [ ] Z5: assurance.
+  - [x] No free private variables in any program circuit, across witness shapes.
+  - [x] Property tests against plain-Rust models for `threshold`, `allowlist`, `timelock` and escrow release, natively and in R1CS; mutation runs confirm they catch dropped checks.
+  - [ ] Picus uniqueness check: circuits export in Picus's format (`zk/scripts/picus.sh`); not yet run, since Picus is not installed here.
+  - [ ] External review: the brief is written ([review request](security/zk-review-request.md)); not yet sent to a reviewer.
 
 ## Cross-cutting risks
 - Alpha API churn: track `helius-labs/zolana` releases; isolate SDK calls behind `core`.

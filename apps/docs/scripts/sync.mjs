@@ -37,6 +37,7 @@ const PAGES = [
   ["docs/platform-notes.md", "background/platform-notes", "Platform notes", "What Helius Privacy provides and its constraints."],
   ["docs/spikes/m0-sdk-findings.md", "background/sdk-findings", "SDK findings", "What we learned building on the zolana SDK."],
   ["docs/spikes/z0-zk-dsl.md", "background/zk-dsl", "ZK program DSL", "Upstream's Rust ZK DSL, and what Z0 built and ran on it."],
+  ["docs/security/zk-review-request.md", "background/zk-review-request", "ZK review request", "Scope, threat model and evidence for an external review of the ZK programs."],
   ["docs/roadmap.md", "background/roadmap", "Roadmap", "Milestones and what is done."],
 ];
 const SLUG = new Map(PAGES.map(([src, slug]) => [src, slug]));
