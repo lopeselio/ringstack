@@ -59,7 +59,7 @@ All reproducible with the commands below.
 - **Property tests** against plain-Rust models for the circuits: threshold (random sets, thresholds, signers), allowlist (random members, claims, indices past the tree), escrow release (random thresholds and signer slots). Each case must agree with the model natively *and* in R1CS, and a rejected case must leave the R1CS generated and unsatisfied, not merely ungenerated. The timelock has no circuit: its property tests the program-side functions at clocks within a few seconds of the deadline, against wide-integer arithmetic. Mutation runs confirm they bite: dropping the duplicate-signer check, the allowlist's index range check, or making `is_unlocked` inclusive fails with a shrunk counterexample, kept as a regression seed.
 - **Program verifier binding**: the escrow's release proof is refused when the program sees fewer signers, the same signers reordered, or a different deadline. Every circuit's verifier module is regenerated and compared byte for byte with the committed one (`--check`).
 - **Devnet end to end**: the escrow e2e runs two 2-of-3 releases (one built by the payee) and a refund. It shows onchain refusals for an already-expired escrow (9006), a proof for signers who did not all sign (9000), an early refund (9005) and a late release (9006), with exact final balances.
-- **Not yet done: a formal uniqueness check.** The circuits export in Picus's format, but Picus has not been run on them. `zk/scripts/picus.sh` runs it on the gadgets (`--all` adds the escrow circuits, which will likely time out), reads run-picus's exit codes as upstream does (8 safe, 9 unsafe, 0 unknown), kills a run after 300 s, and exits 1 on any unsafe circuit. The 77-constraint threshold gadget is the tractable target.
+- **A formal uniqueness check, inconclusive.** Picus ([Veridise/Picus@138b151](https://github.com/Veridise/Picus/tree/138b151d3a388e5b6c040c163e0a1db04f2ceda6)) decided neither gadget: no counterexample, no proof. The `picus` workflow ran it with cvc5's finite-field solver on 2026-11-07 ([run 42405825409](https://github.com/lopeselio/ringstack/actions/runs/42405825409)): on `threshold-only` (77 constraints) Picus finished after 17 minutes unable to decide, with SMT queries capped at 5 s as in Picus's defaults; `allowlist-depth4` (1,220, Poseidon throughout) had no answer after 25 minutes. z3 locally gave the same. The escrow circuits (6,000 to 16,000 constraints) were not attempted. Whether every wire is uniquely determined therefore rests on the free-variable check and the property tests above, and is a question for the reviewer.
 
 ## Questions for the reviewer
 
@@ -77,7 +77,7 @@ cd zk
 cargo test --release --features harness              # all circuit, property and program tests
 zolana build-zk-program -p milestone-escrow --check   # verifier modules match circuits and keys
 zolana build-zk-program -p zk-template --check
-scripts/picus.sh [--all]                              # needs run-picus (and ideally cvc5-ff)
+scripts/picus.sh [--all]                              # needs run-picus; or run the picus workflow (cvc5, x86)
 cd .. && ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json \
   pnpm --filter @ringstack/milestone-escrow-client e2e
 ```
