@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["gadgets", "template"]
+members = ["gadgets", "template", "milestone-escrow"]
 
 [workspace.package]
 edition = "2024"
