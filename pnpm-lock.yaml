@@ -294,6 +294,18 @@ importers:
 
   packages/ringd-client: {}
 
+  zk/milestone-escrow/client:
+    dependencies:
+      '@heliuslabs/spr':
+        specifier: 0.9.0-alpha
+        version: 0.9.0-alpha(@solana/kit@8.6.0(typescript@5.9.3))(typescript@5.9.3)
+      '@ringstack/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@solana/kit':
+        specifier: ^8.6.0
+        version: 8.6.0(typescript@5.9.3)
+
   zk/template/client:
     dependencies:
       '@heliuslabs/spr':
