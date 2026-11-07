@@ -71,7 +71,7 @@ Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8)
 - [ ] Z5: assurance.
   - [x] No free private variables in any program circuit, across witness shapes.
   - [x] Property tests against plain-Rust models for `threshold`, `allowlist` and escrow release, natively and in R1CS (rejections must leave the R1CS unsatisfied), and for `timelock`'s program-side checks at the deadline; mutation runs confirm they catch dropped checks.
-  - [ ] Picus uniqueness check: circuits export in Picus's format (`zk/scripts/picus.sh`); not yet run, since Picus is not installed here.
+  - [ ] Picus uniqueness check: run with cvc5 in CI (the `picus` workflow, `zk/scripts/picus.sh`) and with z3 locally, and inconclusive: neither gadget decided within 25 minutes (2026-11-07, [results](security/zk-review-request.md#evidence)). Left to the external review.
   - [ ] External review: the brief is written ([review request](security/zk-review-request.md)); not yet sent to a reviewer.
 
 ## Cross-cutting risks
