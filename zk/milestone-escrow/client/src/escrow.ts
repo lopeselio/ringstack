@@ -193,9 +193,15 @@ const PADDING_ERRORS = new Set([
 ]);
 
 /**
- * The funder's open escrows: outputs tagged with their escrow authority that
- * decrypt with their viewing key and whose committed terms match the UTXO
+ * The open escrows `viewingKey` can see: outputs tagged with the escrow
+ * authority that decrypt with it and whose committed terms match the UTXO
  * hash, minus those already spent.
+ *
+ * The authority's tag and the escrow's viewing key are public, so anyone can
+ * publish an output that looks addressed here but does not decrypt or does not
+ * match its commitment. Such slots are skipped, not thrown on, so one forged
+ * output cannot stop the funder or payee from finding the escrow; `onSkipped`
+ * sees each one.
  */
 export function openEscrows(
   wasm: EscrowWasm,
@@ -204,6 +210,7 @@ export function openEscrows(
   authority: ProgramOwner,
   assets: AssetRegistry,
   treeId: number,
+  onSkipped?: (signature: string, slot: number, error: unknown) => void,
 ): DataUtxo<EscrowTerms>[] {
   const ownerTag = hex(authority.ownerTag());
   const recipientKey = viewingKey.publicKey().toBytes();
@@ -230,25 +237,31 @@ export function openEscrows(
         if (frame.encoding !== "encrypted" || frame.scheme !== EncryptedScheme.confidential) return;
         const { body } = frame;
         if (hex(body.slice(0, recipientKey.length)) !== recipient) return;
-        const plaintext = decodeConfidential(
-          viewingKey.decryptUtxo(body.slice(recipientKey.length), txViewingPublicKey, salt, slotIndex),
-        );
-        const utxoHash = slot.outputContext.hash;
-        const escrow = wasm.escrowTermsDataUtxo({
-          utxo: {
-            owner,
-            asset: { asset: assets.resolve(plaintext.assetId), assetId: plaintext.assetId },
-            amount: plaintext.amount,
-            blinding: plaintext.blinding,
-            data: { records: [...plaintext.data.records()] },
-          },
-          nullifierPubkey,
-          utxoHash,
-          nullifier: nullifierKey.nullifier(utxoHash, plaintext.blinding),
-          treeId,
-          leafIndex: slot.outputContext.leafIndex,
-        });
-        if (!spent.has(hex(escrow.utxo.nullifier))) escrows.set(hex(utxoHash), escrow);
+        let escrow: DataUtxo<EscrowTerms>;
+        try {
+          const plaintext = decodeConfidential(
+            viewingKey.decryptUtxo(body.slice(recipientKey.length), txViewingPublicKey, salt, slotIndex),
+          );
+          const utxoHash = slot.outputContext.hash;
+          escrow = wasm.escrowTermsDataUtxo({
+            utxo: {
+              owner,
+              asset: { asset: assets.resolve(plaintext.assetId), assetId: plaintext.assetId },
+              amount: plaintext.amount,
+              blinding: plaintext.blinding,
+              data: { records: [...plaintext.data.records()] },
+            },
+            nullifierPubkey,
+            utxoHash,
+            nullifier: nullifierKey.nullifier(utxoHash, plaintext.blinding),
+            treeId,
+            leafIndex: slot.outputContext.leafIndex,
+          });
+        } catch (error) {
+          onSkipped?.(String(tx.txSignature), slotIndex, error);
+          return;
+        }
+        if (!spent.has(hex(escrow.utxo.nullifier))) escrows.set(hex(escrow.utxo.utxoHash), escrow);
       });
     }
   } finally {
@@ -259,19 +272,27 @@ export function openEscrows(
 
 export type Circuit = "create" | "release" | "refund";
 
-/** Proves a program transaction with the committed key for `circuit`. */
-export function prove(wasm: EscrowWasm, circuit: Circuit, proofInputs: Uint8Array): Proof {
+type WasmProver = ReturnType<EscrowWasm["CreateProver"]["fromKey"]>;
+const provers = new WeakMap<EscrowWasm, Map<Circuit, WasmProver>>();
+
+/** The prover for `circuit`, loaded once per wasm module from the committed key and its digest. */
+function proverFor(wasm: EscrowWasm, circuit: Circuit): WasmProver {
+  let loaded = provers.get(wasm);
+  if (loaded === undefined) provers.set(wasm, (loaded = new Map()));
+  const cached = loaded.get(circuit);
+  if (cached !== undefined) return cached;
   const key = readFileSync(new URL(`${circuit}.pk`, KEYS));
   const digest = readFileSync(new URL(`${circuit}.pk.sha256`, KEYS), "utf8").trim().split(/\s+/)[0];
   if (digest === undefined || !/^[0-9a-f]{64}$/i.test(digest)) throw new Error(`bad digest for ${circuit}.pk`);
-  const checksum = Uint8Array.from(Buffer.from(digest, "hex"));
   const Prover = { create: wasm.CreateProver, release: wasm.ReleaseProver, refund: wasm.RefundProver }[circuit];
-  const prover = Prover.fromKey(key, checksum);
-  try {
-    return prover.prove(proofInputs);
-  } finally {
-    prover.free();
-  }
+  const prover = Prover.fromKey(key, Uint8Array.from(Buffer.from(digest, "hex")));
+  loaded.set(circuit, prover);
+  return prover;
+}
+
+/** Proves a program transaction with the committed key for `circuit`. */
+export function prove(wasm: EscrowWasm, circuit: Circuit, proofInputs: Uint8Array): Proof {
+  return proverFor(wasm, circuit).prove(proofInputs);
 }
 
 interface ProgramTransactInput {
@@ -312,14 +333,19 @@ async function programTransact(
   };
 }
 
-/** Create: the funder escrows their tokens; the escrow is encrypted to `viewingPublicKey`. */
+/**
+ * Create: the funder escrows their tokens. The escrow is encrypted to
+ * `viewingPublicKey`, the escrow's own key, which the funder shares with the
+ * payee so either can build releases. The program refuses a past `deadline`.
+ */
 export function createInstruction(
-  input: ProgramTransactInput & Readonly<{ funder: TransactionSigner; viewingPublicKey: X25519PublicKey }>,
+  input: ProgramTransactInput &
+    Readonly<{ funder: TransactionSigner; viewingPublicKey: X25519PublicKey; deadline: bigint }>,
 ): Promise<Instruction> {
   return programTransact(
     input,
     TAG.create,
-    concat(proofBytes(input.proof), input.viewingPublicKey.toBytes()),
+    concat(proofBytes(input.proof), input.viewingPublicKey.toBytes(), u64le(input.deadline)),
     [signer(input.funder, AccountRole.READONLY_SIGNER)],
     // The funder owns the spent inputs, so the pool's proof binds them as an
     // owner signer ahead of the escrow authority PDA.

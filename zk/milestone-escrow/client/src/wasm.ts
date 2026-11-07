@@ -51,9 +51,8 @@ export interface CreateInputs {
     approvers: number[][];
     threshold: number;
     tranche: bigint;
-    deadline: bigint;
   };
-  public: { escrowOwner: Uint8Array; funderIdentity: Uint8Array };
+  public: { escrowOwner: Uint8Array; funderIdentity: Uint8Array; deadline: bigint };
 }
 
 export interface ReleaseInputs {
