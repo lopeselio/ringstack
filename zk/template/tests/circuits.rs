@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ringstack_zk_gadgets::harness::{assert_accepts, assert_refuses};
+use ringstack_zk_gadgets::harness::{assert_accepts, assert_no_free_variables, assert_refuses};
 use spr_hasher::primitives::solana_owner_identity;
 use spr_program::{
     verifier::VerifyError, CompressedProof, Groth16Keys, Groth16Prover, SolanaProof, TxContext,
@@ -235,4 +235,12 @@ fn release_rules_each_refuse_their_case() {
     let mut stranger = release_inputs(&party);
     stranger.public.creator_identity = creator_identity_of(9);
     assert_refuses(&stranger, "the signer is not the vault creator");
+}
+
+#[test]
+fn no_circuit_leaves_a_private_variable_free() {
+    let party = creator();
+    assert_no_free_variables(&lock_inputs(&party, 250));
+    assert_no_free_variables(&lock_inputs(&party, 1000));
+    assert_no_free_variables(&release_inputs(&party));
 }
