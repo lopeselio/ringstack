@@ -32,3 +32,10 @@ required-features = ["harness"]
 [[test]]
 name = "terms"
 required-features = ["harness"]
+
+[dev-dependencies]
+proptest = "=1.11.0"
+
+[[test]]
+name = "properties"
+required-features = ["harness"]
