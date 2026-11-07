@@ -11,30 +11,13 @@ use std::path::{Path, PathBuf};
 use ringstack_zk_gadgets::{allowlist::assert_allowed, threshold::assert_threshold};
 use spr_program::{
     CircuitError, ZkCircuit,
-    circuit::{Assert, Circuit, CircuitVar, Field, poseidon},
+    circuit::{Circuit, Field},
     conversion::ProofInput,
 };
 
-/// `threshold` over a set bound to a commitment, as its contract requires.
-#[derive(Clone, Copy, Debug, ProofInput)]
-struct Threshold {
-    committed: Field,
-    approvers: [[u8; 32]; 5],
-    threshold: u16,
-    signers: [[u8; 32]; 3],
-}
-
-impl Circuit for ThresholdCircuit {
-    type Output = ();
-    fn circuit(&self) -> Result<(), CircuitError> {
-        let mut terms: Vec<CircuitVar> = self.approvers.to_vec();
-        terms.push(self.threshold.var());
-        poseidon(&terms)?.assert_equal(&self.committed, "the approvers are the committed set")?;
-        assert_threshold(&self.approvers, &self.threshold, &self.signers).map(|_| ())
-    }
-}
-
-/// `threshold` alone, Poseidon-free: small enough for an SMT solver.
+/// `threshold` alone, Poseidon-free: small enough for an SMT solver. Its
+/// approvers are proof inputs, which Picus holds fixed, so wrapping them in a
+/// commitment would add solver cost and no assurance.
 #[derive(Clone, Copy, Debug, ProofInput)]
 struct ThresholdOnly {
     approvers: [[u8; 32]; 5],
@@ -84,6 +67,5 @@ fn main() {
     );
     std::fs::create_dir_all(&dir).expect("out dir");
     write::<ThresholdOnly>(&dir, "threshold-only");
-    write::<Threshold>(&dir, "threshold-committed");
     write::<Allowlist>(&dir, "allowlist-depth4");
 }
