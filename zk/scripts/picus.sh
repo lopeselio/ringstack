@@ -32,27 +32,35 @@ if [[ "${1:-}" == "--all" ]]; then
   cargo run --release -q -p milestone-escrow --features circuits --example picus_export -- "$out" >/dev/null || exit 2
 fi
 
-# Killing Racket alone can orphan the solver, so stop the whole tree.
-kill_tree() {
-  local child
-  for child in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$child"; done
-  kill -KILL "$1" 2>/dev/null || true
+# Each run starts in its own process group (job control on just for the
+# launch, so bash prints no job notices), and a time limit stops the group:
+# Racket and every solver it has started or is about to start. TERM first, so
+# a wrapper can clean up; then KILL what is left.
+stop() {
+  kill -TERM -- "-$1" 2>/dev/null
+  for _ in 1 2 3 4 5; do
+    kill -0 -- "-$1" 2>/dev/null || return 0
+    sleep 1
+  done
+  kill -KILL -- "-$1" 2>/dev/null || true
 }
 
 unsafe=0
 for name in "${circuits[@]}"; do
   printf '%-18s ' "$name"
   log="$out/$name.log"
+  set -m
   "$picus" --solver "$solver" --timeout "$query_ms" "$out/$name.r1cs" >"$log" 2>&1 &
   pid=$!
+  set +m
   waited=0
   while kill -0 "$pid" 2>/dev/null && ((waited < limit_s)); do
     sleep 1
     waited=$((waited + 1))
   done
   if kill -0 "$pid" 2>/dev/null; then
-    kill_tree "$pid"
-    wait "$pid" 2>/dev/null
+    # bash reports the killed job on stderr when it reaps it; keep that out.
+    { stop "$pid"; wait "$pid"; } 2>/dev/null
     echo "unknown (killed after ${limit_s}s)"
     continue
   fi
