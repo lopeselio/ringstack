@@ -172,7 +172,9 @@ const PADDING_ERRORS = new Set([
 /**
  * The creator's open vaults: outputs tagged with their vault authority that
  * decrypt with their viewing key, whose committed terms match the UTXO hash,
- * minus those already spent.
+ * minus those already spent. The authority's tag and the creator's viewing key
+ * are public, so a forged output that does not decrypt or does not match its
+ * commitment is skipped, not thrown on; `onSkipped` sees each one.
  */
 export function openVaults(
   wasm: TemplateWasm,
@@ -181,6 +183,7 @@ export function openVaults(
   authority: ProgramOwner,
   assets: AssetRegistry,
   treeId: number,
+  onSkipped?: (signature: string, slot: number, error: unknown) => void,
 ): DataUtxo<VaultTerms>[] {
   const ownerTag = hex(authority.ownerTag());
   const recipientKey = viewingKey.publicKey().toBytes();
@@ -207,25 +210,31 @@ export function openVaults(
         if (frame.encoding !== "encrypted" || frame.scheme !== EncryptedScheme.confidential) return;
         const { body } = frame;
         if (hex(body.slice(0, recipientKey.length)) !== recipient) return;
-        const plaintext = decodeConfidential(
-          viewingKey.decryptUtxo(body.slice(recipientKey.length), txViewingPublicKey, salt, slotIndex),
-        );
-        const utxoHash = slot.outputContext.hash;
-        const vault = wasm.vaultTermsDataUtxo({
-          utxo: {
-            owner,
-            asset: { asset: assets.resolve(plaintext.assetId), assetId: plaintext.assetId },
-            amount: plaintext.amount,
-            blinding: plaintext.blinding,
-            data: { records: [...plaintext.data.records()] },
-          },
-          nullifierPubkey,
-          utxoHash,
-          nullifier: nullifierKey.nullifier(utxoHash, plaintext.blinding),
-          treeId,
-          leafIndex: slot.outputContext.leafIndex,
-        });
-        if (!spent.has(hex(vault.utxo.nullifier))) vaults.set(hex(utxoHash), vault);
+        let vault: DataUtxo<VaultTerms>;
+        try {
+          const plaintext = decodeConfidential(
+            viewingKey.decryptUtxo(body.slice(recipientKey.length), txViewingPublicKey, salt, slotIndex),
+          );
+          const utxoHash = slot.outputContext.hash;
+          vault = wasm.vaultTermsDataUtxo({
+            utxo: {
+              owner,
+              asset: { asset: assets.resolve(plaintext.assetId), assetId: plaintext.assetId },
+              amount: plaintext.amount,
+              blinding: plaintext.blinding,
+              data: { records: [...plaintext.data.records()] },
+            },
+            nullifierPubkey,
+            utxoHash,
+            nullifier: nullifierKey.nullifier(utxoHash, plaintext.blinding),
+            treeId,
+            leafIndex: slot.outputContext.leafIndex,
+          });
+        } catch (error) {
+          onSkipped?.(String(tx.txSignature), slotIndex, error);
+          return;
+        }
+        if (!spent.has(hex(vault.utxo.nullifier))) vaults.set(hex(vault.utxo.utxoHash), vault);
       });
     }
   } finally {
