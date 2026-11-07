@@ -4,7 +4,8 @@
 # wire that is not a declared proof input must be uniquely determined by the
 # inputs. Needs `run-picus` on PATH (or PICUS=/path/to/run-picus) and, ideally,
 # cvc5 with finite-field support; z3 copes only with small, Poseidon-free
-# circuits.
+# circuits. To use Picus's Docker image instead (it is x86 only; the picus
+# workflow runs it on GitHub's runners), set PICUS=zk/scripts/picus-docker.sh.
 #
 #   zk/scripts/picus.sh [--all]
 #
@@ -35,7 +36,7 @@ fi
 # Each run starts in its own process group (job control on just for the
 # launch, so bash prints no job notices), and a time limit stops the group:
 # Racket and every solver it has started or is about to start. TERM first, so
-# a wrapper can clean up; then KILL what is left.
+# a wrapper (picus-docker.sh) can stop its container; then KILL what is left.
 stop() {
   kill -TERM -- "-$1" 2>/dev/null
   for _ in 1 2 3 4 5; do
