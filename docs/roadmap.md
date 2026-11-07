@@ -70,7 +70,7 @@ Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8)
 - [x] Z4: [Milestone escrow](../zk/milestone-escrow): 2-of-3 releases per tranche, refund after a deadline; devnet e2e passes against `2XdkS7kQQcuCXQBhQv634B8PhDqFbpTPecHqMavwtMBR`, including onchain refusals for unsigned approvers, an already-expired escrow, an early refund and a late release; the payee can build releases with the escrow's shared viewing key.
 - [ ] Z5: assurance.
   - [x] No free private variables in any program circuit, across witness shapes.
-  - [x] Property tests against plain-Rust models for `threshold`, `allowlist`, `timelock` and escrow release, natively and in R1CS; mutation runs confirm they catch dropped checks.
+  - [x] Property tests against plain-Rust models for `threshold`, `allowlist` and escrow release, natively and in R1CS (rejections must leave the R1CS unsatisfied), and for `timelock`'s program-side checks at the deadline; mutation runs confirm they catch dropped checks.
   - [ ] Picus uniqueness check: circuits export in Picus's format (`zk/scripts/picus.sh`); not yet run, since Picus is not installed here.
   - [ ] External review: the brief is written ([review request](security/zk-review-request.md)); not yet sent to a reviewer.
 
