@@ -9,7 +9,7 @@ use wincode::{SchemaRead, SchemaWrite};
 
 use crate::{
     error::EscrowError,
-    instructions::shared::{check_before_deadline, EscrowAuthority, IxData},
+    instructions::shared::{check_not_expired, EscrowAuthority, IxData},
     verifier::release,
     APPROVERS,
 };
@@ -48,7 +48,7 @@ pub fn process_release_ix(accounts: &mut [AccountView], data: &[u8]) -> ProgramR
     } = IxData::<ReleaseArgs>::parse(data)?;
 
     // The clock first: a late release costs no proof verification.
-    check_before_deadline(Clock::get()?.unix_timestamp, deadline)?;
+    check_not_expired(Clock::get()?.unix_timestamp, deadline)?;
 
     let count = usize::from(approver_count);
     if count > APPROVERS {
