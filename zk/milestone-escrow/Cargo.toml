@@ -75,3 +75,7 @@ solana-signature = "3.4"
 [[test]]
 name = "circuits"
 required-features = ["harness"]
+
+[[example]]
+name = "picus_export"
+required-features = ["circuits"]
