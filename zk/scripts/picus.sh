@@ -25,6 +25,7 @@ limit_s="${PICUS_LIMIT_S:-300}"
 out=target/picus
 command -v "$picus" >/dev/null || { echo "run-picus not found; set PICUS" >&2; exit 2; }
 [[ "$limit_s" =~ ^[1-9][0-9]*$ ]] || { echo "PICUS_LIMIT_S must be whole seconds, got '$limit_s'" >&2; exit 2; }
+[[ "$query_ms" =~ ^[1-9][0-9]*$ ]] || { echo "PICUS_QUERY_MS must be whole milliseconds, got '$query_ms'" >&2; exit 2; }
 
 circuits=(threshold-only allowlist-depth4)
 cargo run --release -q -p ringstack-zk-gadgets --features harness --example picus_export -- "$out" >/dev/null || exit 2
