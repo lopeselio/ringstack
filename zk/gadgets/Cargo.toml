@@ -35,7 +35,13 @@ required-features = ["harness"]
 
 [dev-dependencies]
 proptest = "=1.11.0"
+# The Picus exporter (examples/picus_export.rs) needs the setup feature.
+spr-program = { workspace = true, features = ["setup"] }
 
 [[test]]
 name = "properties"
+required-features = ["harness"]
+
+[[example]]
+name = "picus_export"
 required-features = ["harness"]
