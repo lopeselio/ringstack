@@ -56,10 +56,10 @@ All reproducible with the commands below.
 
 - **Negative cases per rule** in each crate's `tests/`, through the [harness](../../zk/gadgets#the-harness). A case passes only if it is refused natively by the named rule *and* the R1CS is unsatisfied, or it is flagged as never generated. The harness's own tests show it catches a missing bound, a native-only check, a case refused by the wrong rule, and an unused input.
 - **No free private variables** in any program circuit, checked on several witness shapes. Upstream's perturbation check (`check_private_variables`) tolerates only UTXO metadata the pool's proof validates and equality-test inverse hints.
-- **Property tests** against plain-Rust models: threshold (random sets, thresholds, signers), allowlist (random members, claims, indices past the tree), timelock (random clocks), escrow release (random thresholds and signer slots). Each case must agree with the model natively *and* in R1CS. Mutation runs confirm they bite: dropping the duplicate-signer check, or the allowlist's index range check, fails with a shrunk counterexample. Both are kept as regression seeds.
+- **Property tests** against plain-Rust models for the circuits: threshold (random sets, thresholds, signers), allowlist (random members, claims, indices past the tree), escrow release (random thresholds and signer slots). Each case must agree with the model natively *and* in R1CS, and a rejected case must leave the R1CS generated and unsatisfied, not merely ungenerated. The timelock has no circuit: its property tests the program-side functions at clocks within a few seconds of the deadline, against wide-integer arithmetic. Mutation runs confirm they bite: dropping the duplicate-signer check, the allowlist's index range check, or making `is_unlocked` inclusive fails with a shrunk counterexample, kept as a regression seed.
 - **Program verifier binding**: the escrow's release proof is refused when the program sees fewer signers, the same signers reordered, or a different deadline. Every circuit's verifier module is regenerated and compared byte for byte with the committed one (`--check`).
 - **Devnet end to end**: the escrow e2e runs two 2-of-3 releases (one built by the payee) and a refund. It shows onchain refusals for an already-expired escrow (9006), a proof for signers who did not all sign (9000), an early refund (9005) and a late release (9006), with exact final balances.
-- **Not yet done: a formal uniqueness check.** The circuits export in Picus's format (`zk/scripts/picus.sh`), but Picus has not been run on them; the 77-constraint threshold gadget is the tractable target. A reviewer with Picus and cvc5 (finite fields) set up can run the script directly.
+- **Not yet done: a formal uniqueness check.** The circuits export in Picus's format, but Picus has not been run on them. `zk/scripts/picus.sh` runs it on the gadgets (`--all` adds the escrow circuits, which will likely time out), reads run-picus's exit codes as upstream does (8 safe, 9 unsafe, 0 unknown), kills a run after 300 s, and exits 1 on any unsafe circuit. The 77-constraint threshold gadget is the tractable target.
 
 ## Questions for the reviewer
 
@@ -77,7 +77,7 @@ cd zk
 cargo test --release --features harness              # all circuit, property and program tests
 zolana build-zk-program -p milestone-escrow --check   # verifier modules match circuits and keys
 zolana build-zk-program -p zk-template --check
-scripts/picus.sh                                      # needs run-picus (and ideally cvc5-ff)
+scripts/picus.sh [--all]                              # needs run-picus (and ideally cvc5-ff)
 cd .. && ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json \
   pnpm --filter @ringstack/milestone-escrow-client e2e
 ```
