@@ -66,6 +66,8 @@ ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json \
   pnpm --filter @ringstack/zk-template-client e2e
 ```
 
+This repo's deployment is `3bzWnoteJaH7kD6Jron7Lb1ABfQxLGSqcEzRr3Zy6cAi` on devnet; the e2e passed against it on 2026-11-06 in about 55 seconds.
+
 An 88 KB program locks about 0.45 SOL of rent; `solana program close` returns it. The e2e deposits 0.01 SOL into the pool, locks 0.007 SOL until about 40 seconds later, checks that a release before then is refused onchain with `NotYetUnlocked` (9005), waits, releases, and checks the balance is whole and no vault is open. The pool's proofs come from Helius's devnet prover; the program's proofs are made locally from `keys/`.
 
 ## Starting your own program

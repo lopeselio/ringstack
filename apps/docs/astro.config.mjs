@@ -33,6 +33,7 @@ export default defineConfig({
             "tools/derivation-guard",
             "tools/derivation-guard-extension",
             "tools/zk-gadgets",
+            "tools/zk-template",
           ],
         },
         {

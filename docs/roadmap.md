@@ -66,7 +66,7 @@ Re-scoped 2026-11-06 from Go/gnark to upstream's Rust ZK DSL (`spr-program` 0.8)
 - [x] Z0: Build and run upstream `sdk-tests/timelock-escrow` on `spr-program` 0.8: circuit prove/verify, `cargo build-sbf`, verifier modules `--check`; baseline 14,880 / 5,638 constraints.
 - [x] Z1: [`zk/gadgets`](../zk/gadgets) crate and harness: negative cases must fail by rule name *and* in R1CS, free-variable check, constraint counts; CI runs fmt, clippy and tests.
 - [x] Z2: `threshold` (77 constraints), `allowlist` (1,220 for 16 members), `timelock` (program side) with negative tests and pinned counts. `terms` became a tested pattern, since binding a term is one `assert_equal`. The free-variable check found that `threshold` alone leaves unused approver slots free; its contract requires binding the set.
-- [ ] Z3: Template (program + circuits + verifier modules + client), with a devnet test.
+- [x] Z3: [Template](../zk/template) (program + circuits + verifier modules + keys + TS client) that builds outside upstream's workspace; devnet e2e passes against program `3bzWnoteJaH7kD6Jron7Lb1ABfQxLGSqcEzRr3Zy6cAi` (lock with a program proof, onchain timelock refusal, release).
 - [ ] Z4: Milestone escrow reference program, end to end on devnet.
 - [ ] Z5: Property tests, Picus under-constraint check; request external review.
 
