@@ -19,6 +19,7 @@ pub mod rule {
     pub const NOT_ESCROW_DEADLINE: &str = "the deadline is not the escrow's";
     pub const NOT_ESCROW_PAYEE: &str = "the payee is not the escrow's";
     pub const NOT_ESCROW_ADDRESS: &str = "the remainder is not re-created at the escrow's address";
+    pub const EMPTY_ESCROW: &str = "the escrow has nothing left to release";
 }
 
 #[derive(Clone, ZkProgramCircuit)]
@@ -77,9 +78,13 @@ impl Circuit for ReleaseCircuit {
         let _approvals =
             assert_threshold(&escrow.approvers, &escrow.threshold, &self.public.signers)?;
 
-        let tranche = escrow.tranche.clone();
+        // One tranche, or what is left when that is less, so no remainder is
+        // ever stranded until the refund.
+        let remaining = escrow.amount()?;
+        remaining.assert_not_zero(rule::EMPTY_ESCROW)?;
+        let pay = escrow.tranche.min(&remaining)?;
         let mut payout = TokenUtxos::new_init(&p.payee, &escrow.asset());
-        escrow.transfer(&mut payout, &tranche)?;
+        escrow.transfer(&mut payout, &pay)?;
 
         ConfidentialTransaction::new(&p.tx_context, &self.public)
             .with(escrow)

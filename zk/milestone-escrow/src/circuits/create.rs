@@ -41,13 +41,14 @@ pub struct CreatePrivateInputs {
     pub approvers: [[u8; 32]; APPROVERS],
     pub threshold: u16,
     pub tranche: u64,
-    pub deadline: u64,
 }
 
 #[derive(Clone, PublicInputs)]
 pub struct CreatePublicInputs {
     pub escrow_owner: ShieldedAddress,
     pub funder_identity: [u8; 32],
+    /// Public so the program can refuse an escrow that is already expired.
+    pub deadline: u64,
 }
 
 impl Circuit for CreateCircuit {
@@ -96,7 +97,7 @@ impl Circuit for CreateCircuit {
         escrow.approvers = p.approvers.clone();
         escrow.threshold = p.threshold.clone();
         escrow.tranche = p.tranche.clone();
-        escrow.deadline = p.deadline.clone();
+        escrow.deadline = self.public.deadline.clone();
 
         ConfidentialTransaction::new(&p.tx_context, &self.public)
             .with(tokens)

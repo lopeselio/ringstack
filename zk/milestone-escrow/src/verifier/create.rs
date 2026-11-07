@@ -9,6 +9,7 @@ include!("create.vk.rs");
 pub struct PublicInputs {
     pub escrow_owner: [u8; 32],
     pub funder_identity: [u8; 32],
+    pub deadline: u64,
 }
 
 impl PublicInputs {
@@ -17,6 +18,7 @@ impl PublicInputs {
             &[
                 Field::Hash(&self.escrow_owner),
                 Field::Hash(&self.funder_identity),
+                Field::Integer(u128::from(self.deadline)),
             ],
             transaction_hash,
         )
