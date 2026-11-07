@@ -1,5 +1,4 @@
 #[cfg(any(target_os = "solana", target_arch = "bpf"))]
-#[cfg(any(target_os = "solana", target_arch = "bpf"))]
 use pinocchio::cpi::{Seed, Signer};
 use pinocchio::{error::ProgramError, AccountView, Address, ProgramResult};
 use spr_interface::instruction::instruction_data::transact::TransactIxDataRef;
