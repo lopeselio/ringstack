@@ -24,6 +24,7 @@ query_ms="${PICUS_QUERY_MS:-5000}"
 limit_s="${PICUS_LIMIT_S:-300}"
 out=target/picus
 command -v "$picus" >/dev/null || { echo "run-picus not found; set PICUS" >&2; exit 2; }
+[[ "$limit_s" =~ ^[1-9][0-9]*$ ]] || { echo "PICUS_LIMIT_S must be whole seconds, got '$limit_s'" >&2; exit 2; }
 
 circuits=(threshold-only allowlist-depth4)
 cargo run --release -q -p ringstack-zk-gadgets --features harness --example picus_export -- "$out" >/dev/null || exit 2
@@ -36,22 +37,29 @@ fi
 # Each run starts in its own process group (job control on just for the
 # launch, so bash prints no job notices), and a time limit stops the group:
 # Racket and every solver it has started or is about to start. TERM first, so
-# a wrapper (picus-docker.sh) can stop its container; then KILL what is left.
+# a wrapper (picus-docker.sh) can stop its container, with time for a slow
+# Docker daemon to answer; then KILL what is left.
 stop() {
   kill -TERM -- "-$1" 2>/dev/null
-  for _ in 1 2 3 4 5; do
+  for _ in $(seq 30); do
     kill -0 -- "-$1" 2>/dev/null || return 0
     sleep 1
   done
   kill -KILL -- "-$1" 2>/dev/null || true
 }
 
+# An interrupted script stops the run in progress, which is in its own group
+# and so does not get the terminal's Ctrl-C.
+pid=
+trap '[[ -n "$pid" ]] && stop "$pid" 2>/dev/null; exit 130' INT TERM
+
+echo "solver $solver, ${query_ms}ms per query, ${limit_s}s per circuit"
 unsafe=0
 for name in "${circuits[@]}"; do
   printf '%-18s ' "$name"
   log="$out/$name.log"
   set -m
-  "$picus" --solver "$solver" --timeout "$query_ms" "$out/$name.r1cs" >"$log" 2>&1 &
+  "$picus" --solver "$solver" --timeout "$query_ms" "$out/$name.r1cs" </dev/null >"$log" 2>&1 &
   pid=$!
   set +m
   waited=0
@@ -62,11 +70,14 @@ for name in "${circuits[@]}"; do
   if kill -0 "$pid" 2>/dev/null; then
     # bash reports the killed job on stderr when it reaps it; keep that out.
     { stop "$pid"; wait "$pid"; } 2>/dev/null
+    pid=
     echo "unknown (killed after ${limit_s}s)"
     continue
   fi
   wait "$pid"
-  case $? in
+  code=$?
+  pid=
+  case $code in
     8) echo safe ;;
     9) echo "UNSAFE (counterexample in $log)"; unsafe=1 ;;
     0) echo "unknown (solver timed out)" ;;
