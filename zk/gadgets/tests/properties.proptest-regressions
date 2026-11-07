@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc 1747a225c9d45922bcfe58501eb544a469376c06cdf61f9cf9df58eb997344b1 # shrinks to approvers = [0, 0, 2, 0, 3], threshold = 1, signers = [2, 2, 2]
 cc 91d0760ee646b1a614c002b8ac35929dbcea2b0e99d59cc98c8b2a41c081ea5b # shrinks to members = [1, 1, 1, 1, 1, 1, 1, 9], claimed = 9, index = 23, pick_member = false
+cc e33a70e0ee2f361d97aa3f290dc68948dd1b2bd163bdc69f4617318d1b01e3ac # shrinks to deadline = 0, delta = 0

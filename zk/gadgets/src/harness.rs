@@ -120,6 +120,30 @@ pub fn assert_refused_by<P: ZkCircuit>(inputs: &P, expected: Refusal) {
     }
 }
 
+/// Whether `inputs` gives the outcome a model expects, natively and in R1CS:
+/// accepted inputs must satisfy the R1CS, and rejected ones must leave it
+/// generated and unsatisfied. A rejection only because the R1CS could not be
+/// generated is an error: its constraints were never checked. For property
+/// tests, which turn the `Err` into a failing case.
+pub fn agreement<P: ZkCircuit>(inputs: &P, expected: bool) -> Result<(), String> {
+    let native = inputs.check_constraints().is_ok();
+    if native != expected {
+        return Err(format!("native run says {native}, the model {expected}"));
+    }
+    let wanted = if expected {
+        R1cs::Satisfied
+    } else {
+        R1cs::Unsatisfied
+    };
+    match r1cs(inputs) {
+        got if got == wanted => Ok(()),
+        R1cs::GenerationFailed => {
+            Err("the R1CS could not be generated, so its constraints were never checked".into())
+        }
+        got => Err(format!("R1CS is {got:?}, the model expects {wanted:?}")),
+    }
+}
+
 /// No private variable of a valid input is left free.
 #[track_caller]
 pub fn assert_no_free_variables<P: ZkCircuit>(inputs: &P) {
