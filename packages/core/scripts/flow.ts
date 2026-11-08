@@ -19,14 +19,20 @@ export interface FlowOptions {
   readonly log?: (msg: string) => void;
   /** Encoded memo attached to the recipient's output (see memo.ts). */
   readonly memo?: Uint8Array;
+  /**
+   * Also pay a second recipient `TRANSFER`, with this memo. Two recipients and
+   * the change are 3 real outputs, which publish 4 slots: a padded transfer.
+   */
+  readonly secondMemo?: Uint8Array;
 }
 
-export async function depositAndTransfer({ log = console.log, memo }: FlowOptions = {}) {
+export async function depositAndTransfer({ log = console.log, memo, secondMemo }: FlowOptions = {}) {
   await initializePoseidon();
   const client = await createSprClient(clientConfigFromEnv());
 
   const sender = ShieldedKeypair.generate();
   const recipient = ShieldedKeypair.generate();
+  const second = secondMemo === undefined ? undefined : ShieldedKeypair.generate();
   const signer = sender.toSolanaSigner();
   const senderAddress = sender.shieldedAddress();
   const send = sendAndConfirmFactory(client, signer);
@@ -71,10 +77,12 @@ export async function depositAndTransfer({ log = console.log, memo }: FlowOption
     signer.address,
   );
   transfer.send(recipient.shieldedAddress(), SOL_MINT, TRANSFER);
-  const inputs =
-    memo === undefined
-      ? transfer.sign(sender, assets)
-      : signTransferWithMemos(transfer, sender, assets, [{ recipient: recipient.shieldedAddress(), memo }]);
+  if (second !== undefined) transfer.send(second.shieldedAddress(), SOL_MINT, TRANSFER);
+  const memos = [
+    ...(memo === undefined ? [] : [{ recipient: recipient.shieldedAddress(), memo }]),
+    ...(second === undefined || secondMemo === undefined ? [] : [{ recipient: second.shieldedAddress(), memo: secondMemo }]),
+  ];
+  const inputs = memos.length === 0 ? transfer.sign(sender, assets) : signTransferWithMemos(transfer, sender, assets, memos);
   const data = await client.proveTransact(inputs, LocalKeys.fromKeypair(sender, client.proofService));
   const transferTx = await send([
     await transactInstruction({
@@ -88,9 +96,10 @@ export async function depositAndTransfer({ log = console.log, memo }: FlowOption
   log(`transfer ${transferTx.signature}`);
 
   const remaining = await balanceAfter(transferTx);
-  if (remaining.amount !== DEPOSIT - TRANSFER) {
-    throw new Error(`transfer: expected change ${DEPOSIT - TRANSFER}, got ${remaining.amount}`);
+  const sent = second === undefined ? TRANSFER : 2n * TRANSFER;
+  if (remaining.amount !== DEPOSIT - sent) {
+    throw new Error(`transfer: expected change ${DEPOSIT - sent}, got ${remaining.amount}`);
   }
 
-  return { client, sender, recipient, assets, deposit, transferTx, change: remaining.amount };
+  return { client, sender, recipient, second, assets, deposit, transferTx, change: remaining.amount };
 }
