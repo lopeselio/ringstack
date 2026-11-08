@@ -97,7 +97,7 @@ describe("memo messages", () => {
       expect(decodeMemo(readMemo(tx, 2, xor))).toBe("invoice 2");
     });
 
-    it("are read in any order, and win over the earlier format", () => {
+    it("are read in any order", () => {
       const tx = {
         outputSlots: slots,
         messages: [
@@ -109,7 +109,23 @@ describe("memo messages", () => {
       expect(decodeMemo(readMemo(tx, 2, xor))).toBe("for 2");
     });
 
-    it("are ignored when they name another slot or carry no exact memo", () => {
+    it("win over a message of the earlier format for the same output", () => {
+      const tx = {
+        outputSlots: slots,
+        messages: [
+          { viewTag: tag(1), data: xor(encodeMemo("earlier"), 4) },
+          { viewTag: tag(1), data: named(0, "named", 5) },
+        ],
+      };
+      expect(decodeMemo(readMemo(tx, 0, xor))).toBe("named");
+      // The earlier-format message still pairs by order with what no message names.
+      const unnamed = { outputSlots: slots, messages: [tx.messages[0]!] };
+      expect(decodeMemo(readMemo(unnamed, 0, xor))).toBe("earlier");
+    });
+
+    it("are ignored when they name another slot, carry another tag, or hold no exact memo", () => {
+      const otherSlot = { outputSlots: slots, messages: [{ viewTag: tag(1), data: named(2, "x", 4) }] };
+      expect(readMemo(otherSlot, 0, xor)).toBeUndefined();
       const wrongTag = { outputSlots: slots, messages: [{ viewTag: tag(2), data: named(0, "x", 4) }] };
       expect(readMemo(wrongTag, 0, xor)).toBeUndefined();
       const junk = new Uint8Array(MEMO_MESSAGE_LENGTH).fill(65);
