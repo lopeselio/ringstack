@@ -27,7 +27,7 @@ ringpay:<recipient>?amount=<amount>&mint=<mint>&order=<order>&label=<label>&mess
 
 ## Memo schema
 
-The memo is the fixed-width encrypted memo from `core/src/memo.ts`: 32 bytes of UTF-8, zero-padded. For a request with `order`, the payer's wallet attaches this memo to the recipient's output, as an encrypted transaction message carrying that output's view tag:
+The memo is the fixed-width encrypted memo from `core/src/memo.ts`: 32 bytes of UTF-8, zero-padded. For a request with `order`, the payer's wallet attaches this memo to the recipient's output, as an encrypted transaction message carrying that output's view tag and naming the output's slot (see `spec/receipt.md`):
 
 ```
 order:<order>
