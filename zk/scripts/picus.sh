@@ -99,7 +99,7 @@ for name in "${circuits[@]}"; do
   case $code in
     8) echo safe ;;
     9) echo "UNSAFE (counterexample in $log)"; unsafe=1 ;;
-    0) echo "unknown (solver timed out)" ;;
+    0) echo "unknown (Picus could not decide)" ;;
     *) echo "run-picus failed, see $log"; exit 2 ;;
   esac
 done
