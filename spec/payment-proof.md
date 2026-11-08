@@ -28,7 +28,7 @@ By Diffie-Hellman, the recipient computes the same shared secret as `X25519(reci
 - Every transaction uses a fresh ephemeral key, so the secret opens nothing in any other transaction.
 - The secret does not reveal the recipient's viewing key.
 
-The decrypted plaintext is the output's opening (asset id, amount, blinding, data). The verifier rebuilds the UTXO with the recipient's address and requires `utxo.hash(nullifierPk, treeId)` to equal the onchain leaf. A match proves the amount and asset, and that the secret is genuine. The same secret opens the output's **memo** message (paired by view tag as in `spec/receipt.md`, at ordinal `outputSlotCount + messageIndex`). The message bytes are onchain and bound by `external_data_hash`, so the memo is what the sender attached; it is not covered by the commitment. (Legacy payments carry the memo inside the output, which the commitment check then covers.)
+The decrypted plaintext is the output's opening (asset id, amount, blinding, data). The verifier rebuilds the UTXO with the recipient's address and requires `utxo.hash(nullifierPk, treeId)` to equal the onchain leaf. A match proves the amount and asset, and that the secret is genuine. The same secret opens the output's **memo** message (paired by view tag as in `spec/receipt.md`, at ordinal `outputSlotCount + messageIndex`, where `outputSlotCount` counts every published output slot, padding included). The message bytes are onchain and bound by `external_data_hash`, so the memo is what the sender attached; it is not covered by the commitment. (Legacy payments carry the memo inside the output, which the commitment check then covers.)
 
 Disclosing the blinding does not let anyone track the output: its nullifier needs the recipient's secret nullifier key.
 
