@@ -141,20 +141,35 @@ const sameTag = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.eve
 export function memoMessageFor(
   tx: MemoSource,
   position: number,
-): { readonly data: Uint8Array; readonly ordinal: number } | undefined {
+): { readonly data: Uint8Array; readonly ordinal: number; readonly index: number } | undefined {
   const tag = tx.outputSlots[position]?.viewTag;
   if (tag === undefined) return undefined;
   const k = tx.outputSlots.slice(0, position).filter((s) => sameTag(s.viewTag, tag)).length;
   const indexes = tx.messages.flatMap((m, i) => (sameTag(m.viewTag, tag) ? [i] : []));
   const j = indexes[k];
-  return j === undefined ? undefined : { data: tx.messages[j]!.data, ordinal: messageOrdinal(tx.outputSlots.length, j) };
+  return j === undefined
+    ? undefined
+    : { data: tx.messages[j]!.data, ordinal: messageOrdinal(tx.outputSlots.length, j), index: j };
+}
+
+/** Exactly what `encodeMemo` writes: non-empty UTF-8, then only zeros. */
+function isEncodedMemo(bytes: Uint8Array): boolean {
+  const end = bytes.indexOf(0);
+  if (end === 0) return false;
+  if (end !== -1 && bytes.subarray(end).some((b) => b !== 0)) return false;
+  try {
+    return decodeMemo(bytes) !== undefined;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Decrypt the memo for output `position` with `decrypt(ciphertext, ordinal)`,
  * which wraps whatever key the caller holds: the recipient's viewing key, a
  * receipt's transaction key, or a payment proof's shared secret. Returns the
- * raw memo bytes, or undefined when the output has no well-formed memo.
+ * raw memo bytes, or undefined when the output has no memo exactly as
+ * `encodeMemo` writes it.
  */
 export function readMemo(
   tx: MemoSource,
@@ -163,12 +178,29 @@ export function readMemo(
 ): Uint8Array | undefined {
   const message = memoMessageFor(tx, position);
   if (message === undefined || message.data.length !== MEMO_LENGTH) return undefined;
-  try {
-    const bytes = decrypt(message.data, message.ordinal);
-    return decodeMemo(bytes) === undefined ? undefined : bytes;
-  } catch {
-    return undefined;
+  // Only an exact encodeMemo result counts, so bytes decrypted at a wrong
+  // ordinal (random) are not taken for a memo.
+  const attempt = (ordinal: number) => {
+    try {
+      const bytes = decrypt(message.data, ordinal);
+      return isEncodedMemo(bytes) ? bytes : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const found = attempt(message.ordinal);
+  if (found !== undefined) return found;
+  // Before the fix in signTransferWithMemos, a padded transfer encrypted its
+  // memos after the real outputs only. Shapes have 2, 4, 8 or 16 slots, so a
+  // padded one held 1 real output (of 2) or more than half and fewer than all;
+  // try those few starting points.
+  const slots = tx.outputSlots.length;
+  const fewest = slots === 2 ? 1 : Math.floor(slots / 2) + 1;
+  for (let real = slots - 1; real >= fewest; real--) {
+    const legacy = attempt(messageOrdinal(real, message.index));
+    if (legacy !== undefined) return legacy;
   }
+  return undefined;
 }
 
 /**
