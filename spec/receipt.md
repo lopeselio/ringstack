@@ -54,7 +54,7 @@ Share as `https://<verifier>/r#ringrcpt1:...`. The **fragment** keeps the key ou
    - The body is `recipientViewingPk (33 bytes) || ciphertext`. The recipient key is embedded, so **no registry lookup is needed to decrypt**.
    - `plaintext = decodeConfidential(txKey.decryptSlotEphemeral(recipientViewingPk, ciphertext, salt, i))`. Padding slots fail to decrypt and are skipped.
    - The plaintext gives the asset id, amount, blinding and data.
-   - **Memo:** the k-th output carrying a view tag pairs with the k-th transaction message carrying that tag. Decrypt the message with `txKey.decryptSlotEphemeral(recipientViewingPk, message, salt, outputSlotCount + messageIndex)`. A 32-byte result that decodes as a memo is the output's memo. (Legacy payments carry it as `data.memo()` instead.)
+   - **Memo:** the k-th output carrying a view tag pairs with the k-th transaction message carrying that tag. Decrypt the message with `txKey.decryptSlotEphemeral(recipientViewingPk, message, salt, outputSlotCount + messageIndex)`, where `outputSlotCount` counts every published output slot, padding included. A 32-byte result that decodes as a memo is the output's memo. (Legacy payments carry it as `data.memo()` instead.)
 5. **Commitment check** (optional per output). If the verifier knows the full shielded address of the slot's recipient (signing key, nullifier key, viewing key), it rebuilds the UTXO and requires `utxo.hash(nullifierPk, treeId) == outputContext.hash`. Results:
    - `verified`: the amount and asset are bound to the onchain commitment.
    - `mismatch`: the sender encrypted something other than what was committed. Reject.
