@@ -30,6 +30,15 @@ import {
 /** Fixed memo width in bytes. */
 export const MEMO_LENGTH = 32;
 
+/**
+ * The ciphertext ordinal of message `index`: messages continue the slot
+ * ordinals after every published output slot, padding included (3 real
+ * outputs publish 4 slots). Writer and readers both go through this.
+ */
+export function messageOrdinal(publishedSlots: number, index: number): number {
+  return publishedSlots + index;
+}
+
 /** UTF-8 encode and zero-pad `text` to `MEMO_LENGTH`. */
 export function encodeMemo(text: string): Uint8Array {
   const bytes = new TextEncoder().encode(text);
@@ -92,21 +101,22 @@ export function signTransferWithMemos(
   try {
     const salt = randomSalt();
     const payload = encodeConfidentialSlots(prepared.outputs, assets, tx, salt);
-    // Message ciphertexts continue the slot ordinals after every published
-    // output slot. `prepared.outputs` holds only the real outputs; finalize pads
-    // them up to the shape (3 real outputs publish 4 slots), and each padded
-    // slot takes an ordinal too. Compact padding is not published.
+    if (memos.length === 0) return prepared.finalize({ txViewingPublicKey: tx.publicKey(), salt, payload });
+    // `prepared.outputs` holds only the real outputs; finalize pads them up to
+    // the shape, and every padded slot it publishes takes an ordinal too.
+    // Compact padding is not published.
     const published = prepared.proofOutputs().filter((o) => !o.isCompact()).length;
     const messages = memos.map((m, i) => ({
       viewTag: outputViewTag(m.recipient),
-      data: tx.encryptSlot(m.recipient.viewingPublicKey, m.memo, salt, published + i),
+      data: tx.encryptSlot(m.recipient.viewingPublicKey, m.memo, salt, messageOrdinal(published, i)),
     }));
-    return prepared.finalize({
-      txViewingPublicKey: tx.publicKey(),
-      salt,
-      payload,
-      ...(messages.length === 0 ? {} : { messages }),
-    });
+    const signed = prepared.finalize({ txViewingPublicKey: tx.publicKey(), salt, payload, messages });
+    // Readers count the slots actually published; a different count here would
+    // make every memo unreadable without any error.
+    if (signed.externalData.outputs.length !== published) {
+      throw new Error(`published ${signed.externalData.outputs.length} output slots, memos assumed ${published}`);
+    }
+    return signed;
   } finally {
     tx.destroy();
     viewingKey.destroy();
@@ -137,7 +147,7 @@ export function memoMessageFor(
   const k = tx.outputSlots.slice(0, position).filter((s) => sameTag(s.viewTag, tag)).length;
   const indexes = tx.messages.flatMap((m, i) => (sameTag(m.viewTag, tag) ? [i] : []));
   const j = indexes[k];
-  return j === undefined ? undefined : { data: tx.messages[j]!.data, ordinal: tx.outputSlots.length + j };
+  return j === undefined ? undefined : { data: tx.messages[j]!.data, ordinal: messageOrdinal(tx.outputSlots.length, j) };
 }
 
 /**
