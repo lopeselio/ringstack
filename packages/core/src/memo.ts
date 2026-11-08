@@ -92,10 +92,14 @@ export function signTransferWithMemos(
   try {
     const salt = randomSalt();
     const payload = encodeConfidentialSlots(prepared.outputs, assets, tx, salt);
-    // Message ciphertexts continue the slot ordinals after every output slot, padding included.
+    // Message ciphertexts continue the slot ordinals after every published
+    // output slot. `prepared.outputs` holds only the real outputs; finalize pads
+    // them up to the shape (3 real outputs publish 4 slots), and each padded
+    // slot takes an ordinal too. Compact padding is not published.
+    const published = prepared.proofOutputs().filter((o) => !o.isCompact()).length;
     const messages = memos.map((m, i) => ({
       viewTag: outputViewTag(m.recipient),
-      data: tx.encryptSlot(m.recipient.viewingPublicKey, m.memo, salt, payload.length + i),
+      data: tx.encryptSlot(m.recipient.viewingPublicKey, m.memo, salt, published + i),
     }));
     return prepared.finalize({
       txViewingPublicKey: tx.publicKey(),
