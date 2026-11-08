@@ -14,7 +14,7 @@ import { SOL_MINT } from "@heliuslabs/spr";
 import { atSlot } from "@heliuslabs/spr/client";
 import { decryptToBalances } from "@heliuslabs/spr/transaction";
 
-import { decodeMemo, encodeMemo, receivedMemos } from "../src/memo.ts";
+import { MEMO_MESSAGE_LENGTH, decodeMemo, encodeMemo, receivedMemos } from "../src/memo.ts";
 import { networkFromEnv } from "../src/config.ts";
 import { decodeReceipt, encodeReceipt } from "../src/receipt.ts";
 import { fetchShieldedTransaction, issueReceipt, openReceipt } from "../src/receipt-open.ts";
@@ -68,11 +68,15 @@ if (paidSecond?.commitment !== "verified" || decodeMemo(paidSecond.memo) !== SEC
 const change = outputTo(sender.viewingPublicKey().toBytes());
 if (change?.commitment !== "verified" || change.memo !== undefined) throw new Error("change should carry no memo");
 
-// Four equal output slots (one of them padding); each memo is one fixed-width message.
+// Four equal output slots (one of them padding); each memo is one fixed-width
+// message naming its output's slot.
 const lengths = tx.outputSlots.map((s) => s.payload.length);
 console.log(`slot payload lengths  ${lengths.join(", ")}; ${tx.messages.length} messages of ${tx.messages[0]?.data.length} bytes`);
 if (lengths.length !== 4 || new Set(lengths).size !== 1 || tx.messages.length !== 2) {
   throw new Error("expected 4 equal slots and two memo messages");
+}
+if (tx.messages.some((m) => m.data.length !== MEMO_MESSAGE_LENGTH)) {
+  throw new Error(`memo messages should be ${MEMO_MESSAGE_LENGTH} bytes, naming their output slot`);
 }
 
 console.log(`ok: memos ${JSON.stringify(ORDER)} and ${JSON.stringify(SECOND)} delivered in a padded transfer and shown on the receipt`);
