@@ -51,7 +51,33 @@ const cases = [
   { recipients: 9, slots: 16 },
 ];
 
+/** Pay one recipient twice with a memo on the second output only, and read both outputs. */
+function secondOutputOnly() {
+  const sender = ShieldedKeypair.generate();
+  const payee = ShieldedKeypair.generate();
+  const funds = new Utxo({ owner: sender.signingPublicKey(), asset: SOL_MINT, amount: 1_000_000n, blinding: randomBlinding() });
+  const transfer = new ConfidentialTransfer(sender.shieldedAddress(), [ProofInputUtxo.fromKeypair(funds, sender)], payer);
+  transfer.send(payee.shieldedAddress(), SOL_MINT, 1_000n);
+  transfer.send(payee.shieldedAddress(), SOL_MINT, 2_000n);
+  const signed = signTransferWithMemos(transfer, sender, new AssetRegistry(), [
+    { recipient: payee.shieldedAddress(), memo: encodeMemo("invoice 2"), nth: 1 },
+  ]);
+  const ext = signed.externalData;
+  const tx: MemoSource = { outputSlots: ext.resolvedOwnerTags.map((viewTag) => ({ viewTag })), messages: ext.messages };
+  const key = payee.viewingKey();
+  const tag = payee.shieldedAddress().confidentialViewTag();
+  const positions = ext.resolvedOwnerTags.flatMap((t, i) => (t.every((b, j) => b === tag[j]) ? [i] : []));
+  return positions.map((position) =>
+    decodeMemo(readMemo(tx, position, (data, ordinal) => key.decryptUtxo(data, ext.txViewingPublicKey, ext.salt, ordinal))),
+  );
+}
+
 describe("memos on signed transfers", () => {
+  it("puts a memo on the named output when a recipient is paid twice", () => {
+    // By order alone, the one memo would pair with the first output.
+    expect(secondOutputOnly()).toEqual([undefined, "invoice 2"]);
+  });
+
   for (const { recipients, slots } of cases) {
     it(`every recipient reads its memo: ${recipients} recipient(s), ${slots} slots`, () => {
       const result = roundTrip(recipients);

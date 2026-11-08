@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { MEMO_LENGTH, decodeMemo, encodeMemo, memoMessageFor, readMemo } from "./memo.ts";
+import { MEMO_LENGTH, MEMO_MESSAGE_LENGTH, decodeMemo, encodeMemo, memoMessageFor, readMemo } from "./memo.ts";
 
 describe("memo encoding", () => {
   it("round-trips and pads to a fixed width", () => {
@@ -79,6 +79,45 @@ describe("memo messages", () => {
     junk[10] = 7;
     const tx = { outputSlots: slots, messages: [{ viewTag: tag(1), data: xor(junk, 3) }] };
     expect(readMemo(tx, 0, xor)).toBeUndefined();
+  });
+
+  describe("messages naming their output slot", () => {
+    const named = (slot: number, text: string, ordinal: number) => {
+      const plain = new Uint8Array(MEMO_MESSAGE_LENGTH);
+      plain[0] = slot;
+      plain.set(encodeMemo(text), 1);
+      return xor(plain, ordinal);
+    };
+    // One recipient (tag 1) holds slots 0 and 2; only slot 2 has a memo.
+    const slots = [tag(1), tag(2), tag(1), tag(9)].map((viewTag) => ({ viewTag }));
+
+    it("go to the slot they name, not the first with the tag", () => {
+      const tx = { outputSlots: slots, messages: [{ viewTag: tag(1), data: named(2, "invoice 2", 4) }] };
+      expect(readMemo(tx, 0, xor)).toBeUndefined();
+      expect(decodeMemo(readMemo(tx, 2, xor))).toBe("invoice 2");
+    });
+
+    it("are read in any order, and win over the earlier format", () => {
+      const tx = {
+        outputSlots: slots,
+        messages: [
+          { viewTag: tag(1), data: named(2, "for 2", 4) },
+          { viewTag: tag(1), data: named(0, "for 0", 5) },
+        ],
+      };
+      expect(decodeMemo(readMemo(tx, 0, xor))).toBe("for 0");
+      expect(decodeMemo(readMemo(tx, 2, xor))).toBe("for 2");
+    });
+
+    it("are ignored when they name another slot or carry no exact memo", () => {
+      const wrongTag = { outputSlots: slots, messages: [{ viewTag: tag(2), data: named(0, "x", 4) }] };
+      expect(readMemo(wrongTag, 0, xor)).toBeUndefined();
+      const junk = new Uint8Array(MEMO_MESSAGE_LENGTH).fill(65);
+      junk[0] = 0;
+      junk[20] = 0;
+      const bad = { outputSlots: slots, messages: [{ viewTag: tag(1), data: xor(junk, 4) }] };
+      expect(readMemo(bad, 0, xor)).toBeUndefined();
+    });
   });
 
   it("ignores messages that are not well-formed memos", () => {
