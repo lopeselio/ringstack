@@ -61,12 +61,12 @@ All reproducible with the commands below.
 - **Devnet end to end**: the escrow e2e runs two 2-of-3 releases (one built by the payee) and a refund. It shows onchain refusals for an already-expired escrow (9006), a proof for signers who did not all sign (9000), an early refund (9005) and a late release (9006), with exact final balances.
 - **A formal uniqueness check, inconclusive.** `zk/scripts/picus.sh` runs Picus ([Veridise/Picus@138b151](https://github.com/Veridise/Picus/tree/138b151d3a388e5b6c040c163e0a1db04f2ceda6)) on each exported circuit and reads run-picus's exit code as upstream's harness does: 8 safe, 9 unsafe (the script then exits 1), 0 unknown, meaning Picus finished but could not decide, for instance because SMT queries hit their per-query timeout. A run still going at the per-circuit limit is killed and also reported unknown. Picus decided neither gadget, so there is no counterexample and no proof:
 
-  | Circuit | Constraints | z3, local (300 s per circuit, 5 s per query) | cvc5 with finite fields, CI (1,500 s, 5 s per query) | cvc5 with finite fields, CI (3,600 s, 60 s per query) |
+  | Circuit | Constraints | z3, local (300 s per circuit, 5 s per query) | cvc5 with finite fields, CI (1,500 s per circuit, 5 s per query) | cvc5 with finite fields, CI (3,600 s per circuit, 60 s per query) |
   |---|---:|---|---|---|
   | `threshold-only` | 77 | Picus finished, undecided | Picus finished after 17 min, undecided | killed at the limit |
   | `allowlist-depth4` | 1,220 | killed at the limit | killed at the limit | killed at the limit |
 
-  The CI runs are [42405825409](https://github.com/lopeselio/ringstack/actions/runs/42405825409) and [42410802755](https://github.com/lopeselio/ringstack/actions/runs/42410802755) (2026-11-07; GitHub keeps their logs for 90 days). With 5 s per query, `threshold-only` stopped because queries timed out; with 60 s per query it was still running after an hour. The escrow circuits (6,000 to 16,000 constraints) were not attempted. Whether every wire is uniquely determined therefore rests on the free-variable check and the property tests above, and is a question for the reviewer.
+  The CI runs are [42405825409](https://github.com/lopeselio/ringstack/actions/runs/42405825409) and [42410802755](https://github.com/lopeselio/ringstack/actions/runs/42410802755) (2026-11-07; GitHub keeps their logs for 90 days). With 5 s per query, Picus finished `threshold-only` after 17 minutes and reported it could not decide (exit 0), which short query timeouts can cause; with 60 s per query it was still running when the hour ran out, so the circuit limit stopped it. A longer run of that circuit alone is still possible (`-f circuits=threshold-only`). The escrow circuits (6,000 to 16,000 constraints) were not attempted. Whether every wire is uniquely determined therefore rests on the free-variable check and the property tests above, and is a question for the reviewer.
 
 ## Questions for the reviewer
 
@@ -94,6 +94,7 @@ cd .. && ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json \
 ```bash
 gh workflow run picus.yml -f limit_s=1500 -f query_ms=5000
 gh workflow run picus.yml -f limit_s=3600 -f query_ms=60000
+gh workflow run picus.yml -f circuits=threshold-only -f limit_s=19800 -f query_ms=60000   # one circuit, 5.5 h
 ```
 
 Copy each crate's committed keys into `target/zk/<crate>/` before `--check` (see the [template README](../../zk/template#build)).
