@@ -23,6 +23,10 @@ on:
         description: Milliseconds per SMT query before Picus gives up on it
         type: number
         default: 5000
+      circuits:
+        description: Only these circuits, space-separated (e.g. threshold-only), so a long limit goes to one
+        type: string
+        default: ""
 
 jobs:
   picus:
@@ -52,9 +56,11 @@ jobs:
           PICUS_LIMIT_S: ${{ inputs.limit_s }}
           PICUS_QUERY_MS: ${{ inputs.query_ms }}
           ALL: ${{ inputs.all && '--all' || '' }}
+          CIRCUITS: ${{ inputs.circuits }}
         run: |
           status=0
-          zk/scripts/picus.sh $ALL | tee verdicts.txt || status=$?
+          # Word splitting is intended: picus.sh rejects any unknown name.
+          zk/scripts/picus.sh $ALL $CIRCUITS | tee verdicts.txt || status=$?
           {
             echo "### Picus (Veridise/Picus@138b151)"
             echo
