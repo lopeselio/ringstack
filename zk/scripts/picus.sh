@@ -7,7 +7,11 @@
 # circuits. To use Picus's Docker image instead (it is x86 only; the picus
 # workflow runs it on GitHub's runners), set PICUS=zk/scripts/picus-docker.sh.
 #
-#   zk/scripts/picus.sh [--all]
+#   zk/scripts/picus.sh [--all] [circuit ...]
+#
+# Circuits: threshold-only, allowlist-depth4 (the default), and with --all
+# also escrow-refund, escrow-release, escrow-create. Naming circuits runs only
+# those, so a long limit can go to one of them.
 #
 # Environment: PICUS_SOLVER (default cvc5), PICUS_QUERY_MS (per SMT query,
 # default 5000 as in Picus), PICUS_LIMIT_S (per circuit, default 300 as in
@@ -27,11 +31,25 @@ command -v "$picus" >/dev/null || { echo "run-picus not found; set PICUS" >&2; e
 [[ "$limit_s" =~ ^[1-9][0-9]*$ ]] || { echo "PICUS_LIMIT_S must be whole seconds, got '$limit_s'" >&2; exit 2; }
 [[ "$query_ms" =~ ^[1-9][0-9]*$ ]] || { echo "PICUS_QUERY_MS must be whole milliseconds, got '$query_ms'" >&2; exit 2; }
 
-circuits=(threshold-only allowlist-depth4)
+gadgets=(threshold-only allowlist-depth4)
+# 6,000 to 16,000 constraints with Poseidon throughout: expect unknown.
+escrow=(escrow-refund escrow-release escrow-create)
+all=0
+named=()
+for arg in "$@"; do
+  case $arg in
+    --all) all=1 ;;
+    threshold-only | allowlist-depth4) named+=("$arg") ;;
+    escrow-refund | escrow-release | escrow-create) named+=("$arg"); all=1 ;;
+    *) echo "unknown circuit '$arg'" >&2; exit 2 ;;
+  esac
+done
+circuits=("${gadgets[@]}")
+((all)) && circuits+=("${escrow[@]}")
+((${#named[@]})) && circuits=("${named[@]}")
+
 cargo run --release -q -p ringstack-zk-gadgets --features harness --example picus_export -- "$out" >/dev/null || exit 2
-if [[ "${1:-}" == "--all" ]]; then
-  # 6,000 to 16,000 constraints with Poseidon throughout: expect unknown.
-  circuits+=(escrow-refund escrow-release escrow-create)
+if ((all)); then
   cargo run --release -q -p milestone-escrow --features circuits --example picus_export -- "$out" >/dev/null || exit 2
 fi
 
