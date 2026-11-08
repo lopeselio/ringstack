@@ -61,12 +61,12 @@ All reproducible with the commands below.
 - **Devnet end to end**: the escrow e2e runs two 2-of-3 releases (one built by the payee) and a refund. It shows onchain refusals for an already-expired escrow (9006), a proof for signers who did not all sign (9000), an early refund (9005) and a late release (9006), with exact final balances.
 - **A formal uniqueness check, inconclusive.** `zk/scripts/picus.sh` runs Picus ([Veridise/Picus@138b151](https://github.com/Veridise/Picus/tree/138b151d3a388e5b6c040c163e0a1db04f2ceda6)) on each exported circuit and reads run-picus's exit code as upstream's harness does: 8 safe, 9 unsafe (the script then exits 1), 0 unknown, meaning Picus finished but could not decide, for instance because SMT queries hit their per-query timeout. A run still going at the per-circuit limit is killed and also reported unknown. Picus decided neither gadget, so there is no counterexample and no proof:
 
-  | Circuit | Constraints | z3, local (300 s per circuit, 5 s per query) | cvc5 with finite fields, CI (1,500 s per circuit, 5 s per query) |
-  |---|---:|---|---|
-  | `threshold-only` | 77 | Picus finished, undecided | Picus finished after 17 min, undecided |
-  | `allowlist-depth4` | 1,220 | killed at the limit | killed at the limit |
+  | Circuit | Constraints | z3, local (300 s per circuit, 5 s per query) | cvc5 with finite fields, CI (1,500 s, 5 s per query) | cvc5 with finite fields, CI (3,600 s, 60 s per query) |
+  |---|---:|---|---|---|
+  | `threshold-only` | 77 | Picus finished, undecided | Picus finished after 17 min, undecided | killed at the limit |
+  | `allowlist-depth4` | 1,220 | killed at the limit | killed at the limit | killed at the limit |
 
-  The CI run is [42405825409](https://github.com/lopeselio/ringstack/actions/runs/42405825409) (2026-11-07; GitHub keeps its logs for 90 days). For `threshold-only` the per-query timeout, not the circuit limit, is what stopped it, so the next thing to try is a longer `query_ms`. The escrow circuits (6,000 to 16,000 constraints) were not attempted. Whether every wire is uniquely determined therefore rests on the free-variable check and the property tests above, and is a question for the reviewer.
+  The CI runs are [42405825409](https://github.com/lopeselio/ringstack/actions/runs/42405825409) and [42410802755](https://github.com/lopeselio/ringstack/actions/runs/42410802755) (2026-11-07; GitHub keeps their logs for 90 days). With 5 s per query, `threshold-only` stopped because queries timed out; with 60 s per query it was still running after an hour. The escrow circuits (6,000 to 16,000 constraints) were not attempted. Whether every wire is uniquely determined therefore rests on the free-variable check and the property tests above, and is a question for the reviewer.
 
 ## Questions for the reviewer
 
@@ -89,10 +89,11 @@ cd .. && ZOLANA_NETWORK=devnet ZOLANA_FUNDER_KEYPAIR=.devnet/funder.json \
   pnpm --filter @ringstack/milestone-escrow-client e2e
 ```
 
-`picus.sh` defaults to cvc5, which needs a build with finite-field support; Picus's Docker image has one but is x86 only. Use it with `PICUS=scripts/picus-docker.sh` on an x86 machine, or dispatch the `picus` workflow, whose inputs set the circuit limit, the query timeout and the escrow circuits. The CI run above was:
+`picus.sh` defaults to cvc5, which needs a build with finite-field support; Picus's Docker image has one but is x86 only. Use it with `PICUS=scripts/picus-docker.sh` on an x86 machine, or dispatch the `picus` workflow, whose inputs set the circuit limit, the query timeout and the escrow circuits. The CI runs above were:
 
 ```bash
 gh workflow run picus.yml -f limit_s=1500 -f query_ms=5000
+gh workflow run picus.yml -f limit_s=3600 -f query_ms=60000
 ```
 
 Copy each crate's committed keys into `target/zk/<crate>/` before `--check` (see the [template README](../../zk/template#build)).
