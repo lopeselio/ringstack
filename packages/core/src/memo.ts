@@ -81,15 +81,22 @@ export interface OutputMemo {
   readonly nth?: number;
 }
 
-function sameAddress(a: ShieldedAddress, b: ShieldedAddress): boolean {
-  const x = a.viewingPublicKey.toBytes();
-  const y = b.viewingPublicKey.toBytes();
-  return x.length === y.length && x.every((v, i) => v === y[i]);
-}
-
 /** The view tag the SDK puts on outputs to `address` (and that its memo message reuses). */
 export function outputViewTag(address: ShieldedAddress) {
   return address.signingPublicKey.confidentialViewTag();
+}
+
+const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
+
+/**
+ * Same signing identity and same viewing key. A viewing key alone is not
+ * enough: a program address can share its creator's viewing key.
+ */
+function sameAddress(a: ShieldedAddress, b: ShieldedAddress): boolean {
+  return (
+    sameBytes(outputViewTag(a), outputViewTag(b)) &&
+    sameBytes(a.viewingPublicKey.toBytes(), b.viewingPublicKey.toBytes())
+  );
 }
 
 /**
@@ -107,13 +114,20 @@ export function signTransferWithMemos(
     if (m.memo.length !== MEMO_LENGTH) throw new RangeError(`memos are ${MEMO_LENGTH} bytes (use encodeMemo)`);
   }
   // Each memo's output, as a slot position: finalize publishes the real outputs
-  // first, in this order, and appends any padding after them.
+  // first, in this order, and appends any padding after them (checked below).
+  // The sender's change comes first and never takes a memo, so paying one's
+  // own address puts the memo on the payment.
   const taken = new Set<number>();
-  const choose = (m: OutputMemo, free: boolean) => {
+  const choose = (m: OutputMemo) => {
     const theirs = prepared.outputs.flatMap((o, i) =>
-      !o.isDummy() && o.ownerAddress !== undefined && sameAddress(o.ownerAddress, m.recipient) ? [i] : [],
+      i >= prepared.senderOutputCount &&
+      !o.isDummy() &&
+      o.ownerAddress !== undefined &&
+      sameAddress(o.ownerAddress, m.recipient)
+        ? [i]
+        : [],
     );
-    const slot = m.nth === undefined ? theirs.find((i) => !free || !taken.has(i)) : theirs[m.nth];
+    const slot = m.nth === undefined ? theirs.find((i) => !taken.has(i)) : theirs[m.nth];
     if (slot === undefined) throw new RangeError("memo recipient has no such output in this transfer");
     if (taken.has(slot)) throw new RangeError("two memos for the same output");
     taken.add(slot);
@@ -122,10 +136,10 @@ export function signTransferWithMemos(
   // Memos naming their output first, so the others take what is left.
   const slots = new Array<number>(memos.length);
   memos.forEach((m, i) => {
-    if (m.nth !== undefined) slots[i] = choose(m, false);
+    if (m.nth !== undefined) slots[i] = choose(m);
   });
   memos.forEach((m, i) => {
-    if (m.nth === undefined) slots[i] = choose(m, true);
+    if (m.nth === undefined) slots[i] = choose(m);
   });
 
   const viewingKey = keypair.viewingKey();
@@ -148,11 +162,18 @@ export function signTransferWithMemos(
       };
     });
     const signed = prepared.finalize({ txViewingPublicKey: tx.publicKey(), salt, payload, messages });
-    // Readers count the slots actually published; a different count here would
-    // make every memo unreadable without any error.
-    if (signed.externalData.outputs.length !== published) {
-      throw new Error(`published ${signed.externalData.outputs.length} output slots, memos assumed ${published}`);
+    // Readers count the slots actually published and match the slot each memo
+    // names; a difference here would make memos unreadable without any error.
+    const ext = signed.externalData;
+    if (ext.outputs.length !== published) {
+      throw new Error(`published ${ext.outputs.length} output slots, memos assumed ${published}`);
     }
+    memos.forEach((m, i) => {
+      const tag = ext.resolvedOwnerTags[slots[i]!];
+      if (tag === undefined || !sameBytes(tag, outputViewTag(m.recipient))) {
+        throw new Error(`memo ${i} names slot ${slots[i]}, which is not its recipient's`);
+      }
+    });
     return signed;
   } finally {
     tx.destroy();
@@ -168,7 +189,7 @@ export interface MemoSource {
   readonly messages: readonly { readonly viewTag: Uint8Array; readonly data: Uint8Array }[];
 }
 
-const sameTag = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
+const sameTag = sameBytes;
 
 /**
  * The memo message of the earlier format (`MEMO_LENGTH` bytes, naming no slot)
@@ -230,7 +251,7 @@ export function readMemo(
     }
   }
   const message = memoMessageFor(tx, position);
-  if (message === undefined || message.data.length !== MEMO_LENGTH) return undefined;
+  if (message === undefined) return undefined;
   // Only an exact encodeMemo result counts, so bytes decrypted at a wrong
   // ordinal (random) are not taken for a memo.
   const attempt = (ordinal: number) => {
