@@ -13,11 +13,14 @@ beforeAll(async () => {
 const payer = address("11111111111111111111111111111112");
 
 /** Sign a real transfer with one memo per recipient and read each memo back as its recipient. */
-function roundTrip(recipients: number) {
+function roundTrip(recipients: number, { compact = false } = {}) {
   const sender = ShieldedKeypair.generate();
   const payees = Array.from({ length: recipients }, () => ShieldedKeypair.generate());
   const funds = new Utxo({ owner: sender.signingPublicKey(), asset: SOL_MINT, amount: 1_000_000n, blinding: randomBlinding() });
-  const transfer = new ConfidentialTransfer(sender.shieldedAddress(), [ProofInputUtxo.fromKeypair(funds, sender)], payer);
+  const input = ProofInputUtxo.fromKeypair(funds, sender);
+  const transfer = compact
+    ? ConfidentialTransfer.compact(sender.shieldedAddress(), [input], payer)
+    : new ConfidentialTransfer(sender.shieldedAddress(), [input], payer);
   payees.forEach((p) => transfer.send(p.shieldedAddress(), SOL_MINT, 1_000n));
   const memos = payees.map((p, i) => ({ recipient: p.shieldedAddress(), memo: encodeMemo(`memo ${i}`) }));
   const signed = signTransferWithMemos(transfer, sender, new AssetRegistry(), memos);
@@ -56,4 +59,11 @@ describe("memos on signed transfers", () => {
       expect(result.read).toEqual(Array.from({ length: recipients }, (_, i) => `memo ${i}`));
     });
   }
+
+  it("counts only published slots under compact padding", () => {
+    // 2 recipients and change: 3 real outputs, and compact padding publishes no 4th.
+    const result = roundTrip(2, { compact: true });
+    expect(result.slots).toBe(3);
+    expect(result.read).toEqual(["memo 0", "memo 1"]);
+  });
 });
