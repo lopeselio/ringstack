@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import { MEMO_LENGTH, decodeMemo, encodeMemo, memoMessageFor, readMemo } from "./memo.ts";
@@ -26,8 +28,12 @@ describe("memo encoding", () => {
 
 describe("memo messages", () => {
   const tag = (n: number) => new Uint8Array(32).fill(n);
-  // XOR "cipher" keyed by the ordinal, so a wrong ordinal decrypts to garbage.
-  const xor = (data: Uint8Array, ordinal: number) => data.map((b) => b ^ (ordinal + 1));
+  // Stream "cipher" keyed by the ordinal: like AES-CTR, a wrong ordinal
+  // decrypts to random-looking bytes.
+  const xor = (data: Uint8Array, ordinal: number) => {
+    const stream = createHash("sha256").update(`ordinal ${ordinal}`).digest();
+    return data.map((b, i) => b ^ stream[i]!);
+  };
   const tx = {
     outputSlots: [{ viewTag: tag(1) }, { viewTag: tag(2) }, { viewTag: tag(1) }],
     messages: [
@@ -47,6 +53,32 @@ describe("memo messages", () => {
     expect(decodeMemo(readMemo(tx, 0, xor))).toBe("first");
     expect(decodeMemo(readMemo(tx, 2, xor))).toBe("second");
     expect(readMemo(tx, 1, xor)).toBeUndefined();
+  });
+
+  it("reads memos sent before the ordinal fix, from padded transfers", () => {
+    // 3 real outputs padded to 4 slots: the old writer started at 3, not 4.
+    const slots = [tag(1), tag(2), tag(1), tag(9)].map((viewTag) => ({ viewTag }));
+    const old = {
+      outputSlots: slots,
+      messages: [
+        { viewTag: tag(1), data: xor(encodeMemo("early"), 3) },
+        { viewTag: tag(1), data: xor(encodeMemo("late"), 4) },
+      ],
+    };
+    expect(decodeMemo(readMemo(old, 0, xor))).toBe("early");
+    expect(decodeMemo(readMemo(old, 2, xor))).toBe("late");
+    // 1 real output padded to 2 slots: the old writer started at 1.
+    const single = { outputSlots: [{ viewTag: tag(1) }, { viewTag: tag(9) }], messages: [{ viewTag: tag(1), data: xor(encodeMemo("one"), 1) }] };
+    expect(decodeMemo(readMemo(single, 0, xor))).toBe("one");
+  });
+
+  it("accepts a legacy ordinal only for an exactly encoded memo", () => {
+    const slots = [tag(1), tag(9), tag(9), tag(9)].map((viewTag) => ({ viewTag }));
+    // Decodes as text at ordinal 3, but with junk after the first zero.
+    const junk = encodeMemo("ok");
+    junk[10] = 7;
+    const tx = { outputSlots: slots, messages: [{ viewTag: tag(1), data: xor(junk, 3) }] };
+    expect(readMemo(tx, 0, xor)).toBeUndefined();
   });
 
   it("ignores messages that are not well-formed memos", () => {
